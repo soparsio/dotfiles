@@ -29,6 +29,24 @@ grep -Fx '    email = "you@example.com"' "$tmpdir/gitconfig" > /dev/null
 printf '%s\n' 'Keep existing local data' > "$tmpdir/data-bootstrap-source/home/.chezmoidata/ai.yaml"
 sh "$tmpdir/data-bootstrap-source/scripts/copy-example-data.sh" "$tmpdir/data-bootstrap-source" > /dev/null
 grep -Fx 'Keep existing local data' "$tmpdir/data-bootstrap-source/home/.chezmoidata/ai.yaml" > /dev/null
+mkdir -p "$tmpdir/remote-install-source/home" "$tmpdir/remote-install-source/scripts" "$tmpdir/remote-install-source/examples/.chezmoidata" "$tmpdir/remote-install-bin" "$tmpdir/remote-install-checkout"
+cp scripts/copy-example-data.sh "$tmpdir/remote-install-source/scripts/"
+cp examples/.chezmoidata/profile.yaml.example "$tmpdir/remote-install-source/examples/.chezmoidata/"
+cp install.sh "$tmpdir/remote-install-checkout/install.sh"
+cat > "$tmpdir/remote-install-bin/chezmoi" <<'EOF'
+#!/bin/sh
+case "$1" in
+  init|diff) exit 0 ;;
+  source-path) printf '%s\n' "$CHEZMOI_TEST_SOURCE_ROOT" ;;
+  *) exit 1 ;;
+esac
+EOF
+chmod +x "$tmpdir/remote-install-bin/chezmoi"
+printf 'n\n' | PATH="$tmpdir/remote-install-bin:$PATH" HOME="$tmpdir/remote-install-home" \
+  CHEZMOI_TEST_SOURCE_ROOT="$tmpdir/remote-install-source/home" \
+  sh "$tmpdir/remote-install-checkout/install.sh" > "$tmpdir/remote-install-output"
+test -f "$tmpdir/remote-install-source/home/.chezmoidata/profile.yaml"
+grep -F 'Created machine-local data file: home/.chezmoidata/profile.yaml' "$tmpdir/remote-install-output" > /dev/null
 mkdir -p "$tmpdir/profile-instruction-source/home/.chezmoiscripts" "$tmpdir/profile-instruction-source/home/.chezmoitemplates/codex" "$tmpdir/profile-instruction-source/home/.chezmoitemplates/vscode" "$tmpdir/profile-instruction-source/scripts" "$tmpdir/profile-instruction-home/.codex"
 printf '%s\n' home > "$tmpdir/profile-instruction-source/.chezmoiroot"
 cp scripts/share-codex-config.py "$tmpdir/profile-instruction-source/scripts/"
@@ -408,6 +426,7 @@ GIT_CONFIG_PARAMETERS="'credential.helper=' 'credential.helper=!gh auth git-cred
 git diff --check
 printf '%s\n' \
   'PASS examples/.chezmoidata/*.example and scripts/copy-example-data.sh' \
+  'PASS remote install bootstrap repository-root resolution' \
   'PASS home/dot_gitconfig.tmpl and home/dot_config/git/config.tmpl' \
   'PASS home/dot_config/private_gh/private_config.yml.tmpl' \
   'PASS home/.chezmoiscripts/run_onchange_setup-profiles.sh.tmpl' \

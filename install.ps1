@@ -24,8 +24,9 @@ if (Test-Path (Join-Path $scriptDir '.chezmoiroot')) {
 } else {
     & $chezmoiPath init 'soparsio/dotfiles'
     if ($LASTEXITCODE -ne 0) { throw 'chezmoi init failed' }
-    $sourceDir = (& $chezmoiPath source-path).Trim()
+    $sourceRoot = (& $chezmoiPath source-path).Trim()
     if ($LASTEXITCODE -ne 0) { throw 'chezmoi source-path failed' }
+    $sourceDir = Split-Path $sourceRoot -Parent
 }
 
 $dataBootstrap = Join-Path $sourceDir 'scripts/copy-example-data.ps1'

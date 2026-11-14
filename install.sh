@@ -32,7 +32,8 @@ fi
 if [ ! -f "$script_dir/.chezmoiroot" ]; then
   chezmoi init soparsio/dotfiles
   use_local_source=false
-  source_dir=$(chezmoi source-path)
+  source_root=$(chezmoi source-path)
+  source_dir=$(dirname "$source_root")
 else
   use_local_source=true
   source_dir=$script_dir
