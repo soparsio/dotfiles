@@ -44,6 +44,69 @@ installing packages and preparing profile state.
 | `scripts/`                       | Setup helpers and isolated repository checks                               |
 | `install.sh`, `install.ps1`      | Bootstrap chezmoi, initialize/copy examples, preview, and request approval |
 
+## Project structure
+
+The repository root contains documentation, examples, bootstrap entry points,
+validation helpers, and provider-specific adapters. Managed target sources
+live under `home/`, selected by `.chezmoiroot`.
+
+```text
+.
+├── AGENTS.md                       Shared repository instructions
+├── CLAUDE.md                       Claude Code instructions importing AGENTS.md
+├── .agents/skills/dotfiles/       Canonical dotfiles workflow skill
+│   ├── agents/                    Focused review prompts
+│   ├── reference/                 Apply, audit, doctor, and sync workflows
+│   └── SKILL.md
+├── .claude/agents/                Claude Code agent adapters
+├── .codex/agents/                 Codex agent configurations
+├── .gemini/agents/                Gemini agent adapters
+├── .github/
+│   ├── agents/                    GitHub Copilot agent adapters
+│   ├── hooks/                     Repository hook configuration
+│   └── workflows/                 CI validation
+├── .vscode/                       Workspace settings
+├── docs/                          Installation, customization, packages, shell,
+│                                  development, keybindings, and troubleshooting
+├── examples/.chezmoidata/         Safe starter data for local customization
+├── home/                          Chezmoi source root and managed targets
+│   ├── .chezmoiscripts/           Setup, platform, and lifecycle scripts
+│   │   ├── darwin/                macOS setup
+│   │   ├── linux/                 Linux and WSL setup
+│   │   └── windows/               Native Windows setup
+│   ├── .chezmoitemplates/         Shared AI, Codex, GH, Vim, and VS Code templates
+│   ├── .chezmoidata.yaml          Tracked shared template defaults
+│   ├── .chezmoidata/              Local data; packages.yaml is tracked
+│   ├── AppData/Roaming/           Native Windows application targets
+│   ├── dot_config/                Atuin, Ghostty, Git, mise, Neovim, GH, Zsh, VS Code
+│   ├── dot_continue/              Continue rules
+│   ├── private_Documents/Cline/   Cline rules
+│   ├── private_dot_claude/        Claude Code instructions
+│   ├── private_dot_codex/         Codex instructions
+│   ├── private_dot_copilot/       GitHub Copilot instructions
+│   ├── private_dot_cursor/        Cursor rules
+│   ├── private_dot_gemini/        Gemini instructions and settings
+│   ├── private_Library/           macOS application targets
+│   ├── dot_zprofile               Login-shell setup
+│   └── dot_zshrc                  Interactive Zsh setup
+├── scripts/                       Checks and setup helpers
+│   ├── check.sh                  Isolated configuration and behavior tests
+│   ├── configure-vscode-profiles.py
+│   ├── copy-example-data.*       Local data bootstrap helpers
+│   ├── lint-shell-template.sh    Shell template lint
+│   └── share-codex-config.py     Shared Codex setup
+├── .chezmoiroot                  Selects home/ as source
+├── install.sh / install.ps1      POSIX and Windows bootstrap entry points
+├── Makefile                      Validation targets
+├── CONTRIBUTING.md               Contribution guidance
+├── CODE_OF_CONDUCT.md            Community expectations and reporting
+└── README.md                     User-facing overview and navigation
+```
+
+Machine-specific data such as profile identities and assistant instructions is
+kept in ignored files under `home/.chezmoidata/`; the safe starter versions are
+under `examples/.chezmoidata/`.
+
 ### Source paths and rendered targets
 
 Chezmoi's filename attributes encode destination behavior. For example:
@@ -154,6 +217,6 @@ For a configuration change:
 3. Review `chezmoi --source "$PWD" diff`.
 4. Apply only after confirming the diff and any setup-script side effects.
 
-The architecture-oriented source map is in [README.md](README.md#repository-structure);
+The managed-source summary is in [README.md](README.md#project-structure);
 the [dotfiles skill](.agents/skills/dotfiles/SKILL.md) routes common workflows
 to their references.

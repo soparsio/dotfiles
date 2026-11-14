@@ -6,15 +6,23 @@ supports macOS, Linux, WSL, and native Windows.
 
 ## Table of Contents
 
-- [Overview & Stack](#overview--stack)
-- [Repository Structure](#repository-structure)
-- [Quick Start](#quick-start)
-- [Documentation](#documentation)
-- [Core Keybindings](#core-keybindings)
-- [Packages, editors, & tools](#packages-editors--tools)
-- [Local Overrides, AI, & Secrets](#local-overrides-ai--secrets)
-- [Testing](#testing)
-- [Troubleshooting](#troubleshooting)
+- [/DOTFILES](#dotfiles)
+  - [Table of Contents](#table-of-contents)
+  - [Overview \& Stack](#overview--stack)
+  - [Project Structure](#project-structure)
+  - [Quick Start](#quick-start)
+    - [Platform support](#platform-support)
+    - [macOS, Linux, or WSL](#macos-linux-or-wsl)
+    - [Native Windows](#native-windows)
+  - [Documentation](#documentation)
+  - [Core Keybindings](#core-keybindings)
+  - [Packages, editors, \& tools](#packages-editors--tools)
+  - [Local Overrides, AI, \& Secrets](#local-overrides-ai--secrets)
+    - [Shared and machine-specific settings](#shared-and-machine-specific-settings)
+    - [Assistant instructions](#assistant-instructions)
+    - [Keep credentials out of configuration](#keep-credentials-out-of-configuration)
+  - [Development](#development)
+  - [Troubleshooting](#troubleshooting)
 
 ## Overview & Stack
 
@@ -35,7 +43,7 @@ state.
 Managed configuration is applied to your home directory. Review the rendered
 changes with `chezmoi diff` before running `chezmoi apply`.
 
-## Repository Structure
+## Project Structure
 
 `.chezmoiroot` sets `home/` as the chezmoi source root. Chezmoi filename
 attributes map source names to destination paths: for example,
@@ -45,26 +53,44 @@ private files.
 
 ```text
 .
-├── .agents/skills/dotfiles/   Dotfiles workflows and references
-├── examples/.chezmoidata/     Safe starter files for local machine data
-├── docs/                      Installation, package, shell, checks, and recovery guides
-├── ARCHITECHTURE.md           System and data-flow overview
-├── CONTRIBUTING.md            Contribution workflow and validation
-├── CODE_OF_CONDUCT.md         Community expectations and reporting
-├── home/                      Managed chezmoi source
-│   ├── .chezmoiscripts/       Platform setup and profile scripts
-│   ├── .chezmoitemplates/     Shared template fragments
-│   ├── .chezmoidata.yaml      Tracked shared template defaults
-│   └── dot_config/            Git, Zsh, mise, editor, and app settings
-├── scripts/                   Checks and setup helpers
-├── install.sh                 macOS, Linux, and WSL bootstrap
-├── install.ps1                Native Windows bootstrap
-├── Makefile                   Repository checks
-└── README.md
+├── .chezmoiroot                Selects home/ as the chezmoi source root
+├── .chezmoiversion             Minimum supported chezmoi version
+├── examples/                   Starter data for local profile and AI settings
+├── home/                       Managed chezmoi source
+│   ├── .chezmoi.yaml.tmpl      Local chezmoi configuration template
+│   ├── .chezmoidata.yaml       Tracked shared template defaults
+│   ├── .chezmoidata/           Local data; packages.yaml tracked, other data ignored
+│   ├── .chezmoiignore          Source exclusions
+│   ├── .chezmoiignore.tmpl     Conditional source exclusions
+│   ├── .chezmoiscripts/        Setup and lifecycle scripts by platform
+│   ├── .chezmoitemplates/      Reusable template fragments
+│   ├── AppData/                Native Windows application targets
+│   ├── _vimrc.tmpl             Windows Vim configuration
+│   ├── dot_config/             Managed application configuration
+│   ├── dot_continue/           Continue rules
+│   ├── dot_gitconfig.tmpl      User Git configuration
+│   ├── dot_npmrc               npm configuration
+│   ├── dot_vimrc.tmpl          Unix Vim configuration
+│   ├── dot_zprofile            Login-shell setup
+│   ├── dot_zshrc               Interactive Zsh setup
+│   ├── private_Documents/      Cline documents and rules
+│   ├── private_Library/        macOS application configuration targets
+│   ├── private_dot_claude/     Claude Code instructions
+│   ├── private_dot_codex/      Codex instructions
+│   ├── private_dot_copilot/    GitHub Copilot instructions
+│   ├── private_dot_cursor/     Cursor rules
+│   └── private_dot_gemini/     Gemini instructions and settings
+├── scripts/                    Checks and configuration/bootstrap helpers
+├── Makefile                    Repository check targets
+├── install.sh                  macOS, Linux, and WSL bootstrap
+└── install.ps1                 Native Windows bootstrap
 ```
 
 Machine-specific data belongs in the ignored `home/.chezmoidata/` directory
 or in `~/.config/chezmoi/chezmoi.yaml`; do not put it in shared templates.
+
+For the full repository map—including documentation, automation, and
+supporting files—read the [Architecture guide](./ARCHITECHTURE.md#project-structure).
 
 ## Quick Start
 
@@ -153,7 +179,8 @@ detail:
   environment setup, helper functions, and profile-aware commands.
 - **[Customization & Local Overrides](./docs/customization.md)** — Local data,
   profile identities, assistant instructions, and credential safety.
-- **[Testing](./docs/checks.md)** — Local validation targets, prerequisites,
+- **[Development](./docs/development.md)** — Development workflow, validation
+  targets, prerequisites,
   coverage, and GitHub Actions behavior.
 - **[Contributing](./CONTRIBUTING.md)** — Repository conventions, validation,
   and pull request guidance.
@@ -189,6 +216,9 @@ They are defined in `home/dot_config/zsh/aliases.zsh.tmpl` and
 
 Docker aliases include `dps`, `dcu`, and `dcd`. Profile launchers are generated
 for enabled tools; exact names depend on the machine-local profile file.
+
+For the full alias and function reference, see the
+[Keybindings Cheat Sheet](./docs/keybindings.md).
 
 ## Packages, editors, & tools
 
@@ -249,11 +279,12 @@ instructions append to inherited text. Set `force: true` to replace it.
 For profiles and identities, local data, assistant instructions, and
 credentials, see [Customization & Local Overrides](./docs/customization.md).
 
-## Testing
+## Development
 
 Run `make check` after changing shell files, templates, or managed JSON. It
-validates rendered configuration without applying it. See
-[Checks](./docs/checks.md) for prerequisites, test coverage, and other targets.
+validates rendered configuration without applying it. See the
+[Development guide](./docs/development.md) for the complete development
+workflow, test coverage, and other validation targets.
 
 ## Troubleshooting
 
