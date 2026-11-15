@@ -5,7 +5,7 @@
 [init]
     defaultBranch = main
 {{- $profiles := (index . "profiles") | default dict }}
-{{- $profilesDir := (index . "profilesDir") | default ".config/profiles" }}
+{{- $profilesDir := includeTemplate "path/profiles-dir" . }}
 {{- $hasAliases := false }}
 {{- range $profile, $config := $profiles }}
   {{- $tools := $config }}

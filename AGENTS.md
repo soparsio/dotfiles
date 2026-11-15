@@ -9,7 +9,8 @@
   Check neighboring sources before choosing a destination or adding a platform
   variant.
 - Reuse template fragments from `home/.chezmoitemplates/` and keep shared
-  defaults in `home/.chezmoidata.yaml`. Avoid duplicating template logic.
+  defaults in `home/.chezmoidata.yaml` when common values need to be tracked.
+  Avoid duplicating template logic.
 - Keep machine-specific values in ignored `home/.chezmoidata/` files or local
   `~/.config/chezmoi/chezmoi.yaml`. Do not replace local data with example data;
   examples must use safe placeholders.

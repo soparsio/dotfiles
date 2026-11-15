@@ -35,9 +35,8 @@ installing packages and preparing profile state.
 | Component                        | Responsibility                                                             |
 | -------------------------------- | -------------------------------------------------------------------------- |
 | `.chezmoiroot`                   | Selects `home/` as the managed source root                                 |
-| `home/`                          | Managed files, templates, data defaults, and chezmoi scripts               |
+| `home/`                          | Managed files, templates, local data, and chezmoi scripts                  |
 | `home/.chezmoitemplates/`        | Reusable template fragments shared by managed files                        |
-| `home/.chezmoidata.yaml`         | Tracked defaults shared across machines                                    |
 | `home/.chezmoidata/`             | Ignored, machine-specific profile and assistant data                       |
 | `~/.config/chezmoi/chezmoi.yaml` | Local chezmoi data overrides and host-specific values                      |
 | `examples/.chezmoidata/`         | Placeholder-based starter data copied only when missing                    |
@@ -75,7 +74,6 @@ live under `home/`, selected by `.chezmoiroot`.
 │   │   ├── linux/                 Linux and WSL setup
 │   │   └── windows/               Native Windows setup
 │   ├── .chezmoitemplates/         Shared AI, Codex, GH, Vim, and VS Code templates
-│   ├── .chezmoidata.yaml          Tracked shared template defaults
 │   ├── .chezmoidata/              Local data; packages.yaml is tracked
 │   ├── AppData/Roaming/           Native Windows application targets
 │   ├── dot_config/                Atuin, Ghostty, Git, mise, Neovim, GH, Zsh, VS Code
@@ -141,7 +139,7 @@ software, and profile scripts can update local application state. Always review
 
 ## Profile setup and runtime
 
-The machine-local `home/.chezmoidata/profile.yaml` describes profile IDs,
+The machine-local `home/.chezmoidata/profiles.yaml` describes profile IDs,
 enabled tools, identity overrides, and optional assistant instructions. The
 `run_onchange_setup-profiles.sh.tmpl` script validates profile data while
 rendering and prepares enabled tools under `~/.config/profiles/<id>/`.

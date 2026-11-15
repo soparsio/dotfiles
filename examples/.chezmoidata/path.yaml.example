@@ -1,0 +1,7 @@
+# Host-specific filesystem locations.
+path:
+  workspace:
+    path: ~/Workspace
+    alias: ws
+  profiles:
+    path: ~/.config/profiles

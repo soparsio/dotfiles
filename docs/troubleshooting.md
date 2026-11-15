@@ -44,7 +44,7 @@ $repoRoot = Split-Path $sourceRoot -Parent
 & "$repoRoot/scripts/copy-example-data.ps1" -SourceDir $repoRoot
 ```
 
-The local profile data file is `home/.chezmoidata/profile.yaml`; the local
+The local profile data file is `home/.chezmoidata/profiles.yaml`; the local
 assistant defaults file is `home/.chezmoidata/ai.yaml`. Both are machine-local
 and ignored by Git.
 
@@ -70,7 +70,7 @@ both source and target before deciding which version should win. Do not use
 `--force` as a first troubleshooting step.
 
 If profile setup deletes a directory, check whether its profile ID is still
-present in `home/.chezmoidata/profile.yaml` and whether that profile has a
+present in `home/.chezmoidata/profiles.yaml` and whether that profile has a
 non-empty `tools` list. The setup script removes profile directories whose IDs
 are no longer configured. Back up any local state before removing a profile
 from the data file.
@@ -81,8 +81,8 @@ from the data file.
 
 Profile Git identity resolves from `profiles.<id>.git.name/email`, then the
 profile's `name` and `email`, then global Git configuration. Check the relevant
-local profile entry and any `~/.gitconfig.local` override. To inspect the
-effective Git identity locally:
+local profile entry and global Git configuration. To inspect the effective
+Git identity locally:
 
 ```sh
 git config --show-origin user.name
@@ -125,7 +125,7 @@ Launch again with `code-<profile>` after it has exited.
 ## Assistant instructions and Codex configuration
 
 Profile instruction files are generated from local data. Edit
-`home/.chezmoidata/profile.yaml` or `home/.chezmoidata/ai.yaml`, not generated
+`home/.chezmoidata/profiles.yaml` or `home/.chezmoidata/ai.yaml`, not generated
 files under `~/.config/profiles/`. With `force: true`, custom instructions
 replace inherited text; otherwise they append. Existing unmanaged instruction
 files and custom symlinks are preserved, so an old custom file may keep the

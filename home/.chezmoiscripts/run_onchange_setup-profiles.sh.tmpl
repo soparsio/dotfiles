@@ -1,6 +1,6 @@
 #!/bin/sh
 # VS Code profile setup checksum: {{ include "../scripts/configure-vscode-profiles.py" | sha256sum }}
-{{ $profilesDir := (index . "profilesDir") | default ".config/profiles" -}}
+{{ $profilesDir := includeTemplate "path/profiles-dir" . -}}
 {{- $profiles := (index . "profiles") | default dict -}}
 {{- $vscodeProfiles := list -}}
 {{- $codexProfiles := list -}}
@@ -87,7 +87,7 @@ umask 077
 
 profiles_base="$HOME/{{ $profilesDir }}"
 
-# Delete profile directories that are no longer declared in profile.yaml.
+# Delete profile directories that are no longer declared in profiles.yaml.
 remove_unconfigured_profiles() {
   [ -d "$profiles_base" ] || return 0
   for profile_dir in "$profiles_base"/* "$profiles_base"/.[!.]* "$profiles_base"/..?*; do
@@ -154,8 +154,8 @@ link_if_missing() {
   {{- end -}}
 {{ end -}}
 
-profile_instruction_marker='<!-- Managed by chezmoi; edit profile.yaml instead. -->'
-legacy_profile_instruction_marker='<!-- Managed by chezmoi; edit profiles.yaml instead. -->'
+profile_instruction_marker='<!-- Managed by chezmoi; edit profiles.yaml instead. -->'
+legacy_profile_instruction_marker='<!-- Managed by chezmoi; edit profile.yaml instead. -->'
 legacy_toml_profile_instruction_marker='<!-- Managed by chezmoi; edit profiles.toml instead. -->'
 
 is_managed_profile_instruction() {

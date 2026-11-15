@@ -54,11 +54,10 @@ private files.
 .
 ├── .chezmoiroot                Selects home/ as the chezmoi source root
 ├── .chezmoiversion             Minimum supported chezmoi version
-├── examples/                   Starter data for local profile and AI settings
+├── examples/                   Starter data for local editor, host, path, profiles, and AI settings
 ├── home/                       Managed chezmoi source
 │   ├── .chezmoi.yaml.tmpl      Local chezmoi configuration template
-│   ├── .chezmoidata.yaml       Tracked shared template defaults
-│   ├── .chezmoidata/           Local data; packages.yaml tracked, other data ignored
+│   ├── .chezmoidata/           Local data; packages.yaml tracked, others ignored
 │   ├── .chezmoiignore          Source exclusions
 │   ├── .chezmoiignore.tmpl     Conditional source exclusions
 │   ├── .chezmoiscripts/        Setup and lifecycle scripts by platform
@@ -235,19 +234,39 @@ can be overridden per machine.
 
 ### Shared and machine-specific settings
 
-Tracked defaults are in `home/.chezmoidata.yaml`. Override values per machine
-in `~/.config/chezmoi/chezmoi.yaml`, for example:
+The local editor preference, Ollama endpoint, and filesystem paths are stored
+in ignored files under `home/.chezmoidata/`. The local-data setup helper copies
+their examples:
+[`profile.yaml.example`](examples/.chezmoidata/profile.yaml.example),
+[`host.yaml.example`](examples/.chezmoidata/host.yaml.example) and
+[`path.yaml.example`](examples/.chezmoidata/path.yaml.example).
+
+The path settings use tilde-based values:
+
+```yaml
+path:
+  workspace:
+    path: ~/Workspace
+    alias: ws
+  profiles:
+    path: ~/.config/profiles
+```
+
+`host.ollama` sets the Ollama endpoint, `path.workspace.path` sets the
+destination of the generated `ws` alias, and `path.profiles.path` selects
+where profile state lives. Any path entry with an `alias` creates a `cd` alias.
+Other values can be set per machine in `~/.config/chezmoi/chezmoi.yaml`, for
+example:
 
 ```yaml
 data:
-  ollamaHost: 127.0.0.1:11434
-  workspaceDir: Workspace
-  editor: code --wait
+  name: Your Name
+  email: you@example.com
 ```
 
-`ollamaHost` sets the Ollama endpoint, `workspaceDir` controls the `ws` helper,
-and `editor` sets the editor used by Zsh and Git. The default editor is
-`code --wait`.
+The local `profile.yaml` example sets the editor used by Zsh, Git, and GitHub
+CLI; it defaults to `code --wait`. It also sets `defaultProfile` for plain
+`code`, using VS Code's built-in `Default` profile unless configured otherwise.
 
 ### Assistant instructions
 
@@ -264,8 +283,6 @@ instructions append to inherited text. Set `force: true` to replace it.
 - Keep profile identities, real email addresses, local AI instructions, and
   machine-specific values in ignored local data or
   `~/.config/chezmoi/chezmoi.yaml`.
-- Keep Git-only overrides in `~/.gitconfig.local` only if you have configured
-  Git to include that file; this repository does not include it by default.
 - Never commit tokens, credentials, private keys, or runtime state. Starter
   examples use placeholders and are safe to customize locally.
 - GitHub CLI credentials may be stored in the operating system credential
@@ -298,9 +315,8 @@ workflow, test coverage, and other validation targets.
   `GITHUB_TOKEN` variables. For GitHub CLI, inspect the profile's
   `~/.config/profiles/<id>/gh/` configuration.
 - **Git identity is unexpected:** Check `profiles.<id>.git`, profile-level
-  `name`/`email`, global Git configuration, and any separately configured
-  include such as `~/.gitconfig.local`. Profile identity overrides do not change
-  global Git configuration.
+  `name`/`email`, and global Git configuration. Profile identity overrides do
+  not change global Git configuration.
 - **Codex profile setup reports a conflict:** Review existing
   `~/.config/profiles/<id>/codex/config.toml` files. Setup preserves conflicting
   files rather than overwriting them.

@@ -54,7 +54,7 @@ default behavior.
 ## Profile launchers
 
 Configured profiles generate launchers based on their `tools` in the
-machine-local `home/.chezmoidata/profile.yaml`. Common patterns are:
+machine-local `home/.chezmoidata/profiles.yaml`. Common patterns are:
 
 | Command pattern                      | Action                                                                     |
 | ------------------------------------ | -------------------------------------------------------------------------- |

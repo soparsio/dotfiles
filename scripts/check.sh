@@ -5,10 +5,12 @@ set -eu
 
 CHEZMOI=${CHEZMOI:-chezmoi}
 CHEZMOI_SOURCE=${CHEZMOI_SOURCE:-$PWD}
-PROFILE_TEST_DATA='{"defaultProfile":"Default","profiles":{"default":{"tools":["codex","vscode"],"name":"Default"},"review":{"tools":["codex","gh","git","vscode"],"alias":"review-account","name":"Review Profile","email":"profile@example.test","git":{"name":"Review User","email":"review@example.test"}},"git_only":{"tools":["git","vscode"],"email":"git-only@example.test"},"vscode_only":{"tools":["vscode"]},"gh-default":{"tools":["gh"],"alias":"fallback-login"},"gh-git-default":{"tools":["gh","git"],"alias":"custom-alias","git":{"name":"Fallback Git","email":"fallback@example.test"}}}}'
-NUMERIC_PROFILE_TEST_DATA='{"profiles":{"numeric":{"tools":["git","gh"],"alias":123,"name":123}}}'
-PROFILE_INSTRUCTION_TEST_DATA='{"profiles":{"instructions":"All profile base","inherit":{"tools":["codex"]},"empty_profile":{"tools":["codex"],"instructions":""},"empty_tool":{"tools":["codex"],"instructions":"Parent profile base","codex":{"instructions":""}},"specific":{"tools":["codex"],"instructions":"Specific\u0027s base"},"tool":{"tools":["codex"],"instructions":"Profile base","codex":{"force":true,"instructions":"Tool replacement"}}}}'
-PROFILE_FORCE_TEST_DATA='{"profiles":{"instructions":"Global base","ai_append":{"tools":["codex"],"instructions":"Profile base","ai":{"force":false,"instructions":"AI append"},"codex":{"force":false,"instructions":"Codex append"}},"ai_default":{"tools":["codex"],"ai":{"instructions":"AI default append"}},"ai_force":{"tools":["codex"],"instructions":"Profile base","ai":{"force":true,"instructions":"AI replacement"}},"tool_force_false":{"tools":["codex"],"instructions":"Profile base","codex":{"force":false,"instructions":"Tool append"}},"tool_default":{"tools":["codex"],"instructions":"Tool parent base","codex":{"instructions":"Tool default append"}},"tool_force_true":{"tools":["codex"],"instructions":"Profile base","codex":{"force":true,"instructions":"Tool replacement"}}}}'
+PROFILE_TEST_DATA='{"defaultProfile":"Default","path":{"workspace":{"path":"~/Workspace","alias":"ws"},"profiles":{"path":"~/.config/profiles"},"projects":{"path":"~/Projects","alias":"projects"}},"profiles":{"default":{"tools":["codex","vscode"],"name":"Default"},"review":{"tools":["codex","gh","git","vscode"],"alias":"review-account","name":"Review Profile","email":"profile@example.test","git":{"name":"Review User","email":"review@example.test"}},"git_only":{"tools":["git","vscode"],"email":"git-only@example.test"},"vscode_only":{"tools":["vscode"]},"gh-default":{"tools":["gh"],"alias":"fallback-login"},"gh-git-default":{"tools":["gh","git"],"alias":"custom-alias","git":{"name":"Fallback Git","email":"fallback@example.test"}}}}'
+NUMERIC_PROFILE_TEST_DATA='{"path":{"profiles":{"path":"~/.config/profiles"}},"profiles":{"numeric":{"tools":["git","gh"],"alias":123,"name":123}}}'
+PROFILE_INSTRUCTION_TEST_DATA='{"path":{"profiles":{"path":"~/.config/profiles"}},"profiles":{"instructions":"All profile base","inherit":{"tools":["codex"]},"empty_profile":{"tools":["codex"],"instructions":""},"empty_tool":{"tools":["codex"],"instructions":"Parent profile base","codex":{"instructions":""}},"specific":{"tools":["codex"],"instructions":"Specific\u0027s base"},"tool":{"tools":["codex"],"instructions":"Profile base","codex":{"force":true,"instructions":"Tool replacement"}}}}'
+PROFILE_FORCE_TEST_DATA='{"path":{"profiles":{"path":"~/.config/profiles"}},"profiles":{"instructions":"Global base","ai_append":{"tools":["codex"],"instructions":"Profile base","ai":{"force":false,"instructions":"AI append"},"codex":{"force":false,"instructions":"Codex append"}},"ai_default":{"tools":["codex"],"ai":{"instructions":"AI default append"}},"ai_force":{"tools":["codex"],"instructions":"Profile base","ai":{"force":true,"instructions":"AI replacement"}},"tool_force_false":{"tools":["codex"],"instructions":"Profile base","codex":{"force":false,"instructions":"Tool append"}},"tool_default":{"tools":["codex"],"instructions":"Tool parent base","codex":{"instructions":"Tool default append"}},"tool_force_true":{"tools":["codex"],"instructions":"Profile base","codex":{"force":true,"instructions":"Tool replacement"}}}}'
+SPECIAL_PATH_TEST_DATA='{"path":{"workspace":{"path":"~/John\u0027s folder/$HOME","alias":"ws"}}}'
+ALIAS_COLLISION_TEST_DATA='{"defaultProfile":"Default","path":{"workspace":{"path":"~/Workspace","alias":"code-review"}},"profiles":{"review":{"tools":["vscode"]}}}'
 
 tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
@@ -20,9 +22,17 @@ printf '%s\n' home > "$tmpdir/data-bootstrap-source/.chezmoiroot"
 sh "$tmpdir/data-bootstrap-source/scripts/copy-example-data.sh" "$tmpdir/data-bootstrap-source" > /dev/null
 cmp -s examples/.chezmoidata/ai.yaml.example "$tmpdir/data-bootstrap-source/home/.chezmoidata/ai.yaml"
 cmp -s examples/.chezmoidata/profile.yaml.example "$tmpdir/data-bootstrap-source/home/.chezmoidata/profile.yaml"
-grep -Fx 'profiles:' "$tmpdir/data-bootstrap-source/home/.chezmoidata/profile.yaml" > /dev/null
+cmp -s examples/.chezmoidata/host.yaml.example "$tmpdir/data-bootstrap-source/home/.chezmoidata/host.yaml"
+cmp -s examples/.chezmoidata/path.yaml.example "$tmpdir/data-bootstrap-source/home/.chezmoidata/path.yaml"
+cmp -s examples/.chezmoidata/profiles.yaml.example "$tmpdir/data-bootstrap-source/home/.chezmoidata/profiles.yaml"
+grep -Fx 'profiles:' "$tmpdir/data-bootstrap-source/home/.chezmoidata/profiles.yaml" > /dev/null
 "$CHEZMOI" --source "$tmpdir/data-bootstrap-source" --config "$tmpdir/chezmoi.toml" data --format=json > "$tmpdir/data-bootstrap.json"
-python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); profiles=data["profiles"]; assert isinstance(data["ai"]["instructions"], str) and "personal" in profiles; assert profiles["personal"]["ai"]["force"] is False and isinstance(profiles["personal"]["ai"]["instructions"], str); assert profiles["personal"]["codex"]["force"] is False; assert profiles["work"]["ai"]["force"] is True and profiles["work"]["codex"]["force"] is False' "$tmpdir/data-bootstrap.json"
+python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); profiles=data["profiles"]; assert data["editor"] == "code --wait" and data["defaultProfile"] == "Default"; assert data["host"]["ollama"] == "127.0.0.1:11434"; assert data["path"]["workspace"] == {"path":"~/Workspace","alias":"ws"} and data["path"]["profiles"]["path"] == "~/.config/profiles"; assert "workspaceDir" not in data and "profilesDir" not in data; assert "name" not in data and "email" not in data, "global identity belongs in local chezmoi config"; assert isinstance(data["ai"]["instructions"], str) and "personal" in profiles; assert profiles["personal"]["ai"]["force"] is False and isinstance(profiles["personal"]["ai"]["instructions"], str); assert profiles["personal"]["codex"]["force"] is False; assert profiles["work"]["ai"]["force"] is True and profiles["work"]["codex"]["force"] is False' "$tmpdir/data-bootstrap.json"
+mkdir -p "$tmpdir/no-host-source/home/dot_config/zsh"
+printf '%s\n' home > "$tmpdir/no-host-source/.chezmoiroot"
+cp home/dot_config/zsh/exports.zsh.tmpl "$tmpdir/no-host-source/home/dot_config/zsh/"
+"$CHEZMOI" --source "$tmpdir/no-host-source" --config "$tmpdir/chezmoi.toml" --override-data '{"editor":"code --wait","host":{}}' cat ~/.config/zsh/exports.zsh > "$tmpdir/exports-no-host"
+grep -F 'export OLLAMA_HOST="127.0.0.1:11434"' "$tmpdir/exports-no-host" > /dev/null
 "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data '{"name":"Your Name","email":"you@example.com"}' cat ~/.gitconfig > "$tmpdir/gitconfig"
 grep -Fx '    name = "Your Name"' "$tmpdir/gitconfig" > /dev/null
 grep -Fx '    email = "you@example.com"' "$tmpdir/gitconfig" > /dev/null
@@ -32,6 +42,7 @@ grep -Fx 'Keep existing local data' "$tmpdir/data-bootstrap-source/home/.chezmoi
 mkdir -p "$tmpdir/remote-install-source/home" "$tmpdir/remote-install-source/scripts" "$tmpdir/remote-install-source/examples/.chezmoidata" "$tmpdir/remote-install-bin" "$tmpdir/remote-install-checkout"
 cp scripts/copy-example-data.sh "$tmpdir/remote-install-source/scripts/"
 cp examples/.chezmoidata/profile.yaml.example "$tmpdir/remote-install-source/examples/.chezmoidata/"
+cp examples/.chezmoidata/profiles.yaml.example "$tmpdir/remote-install-source/examples/.chezmoidata/"
 cp install.sh "$tmpdir/remote-install-checkout/install.sh"
 cat > "$tmpdir/remote-install-bin/chezmoi" <<'EOF'
 #!/bin/sh
@@ -45,14 +56,17 @@ chmod +x "$tmpdir/remote-install-bin/chezmoi"
 printf 'n\n' | PATH="$tmpdir/remote-install-bin:$PATH" HOME="$tmpdir/remote-install-home" \
   CHEZMOI_TEST_SOURCE_ROOT="$tmpdir/remote-install-source/home" \
   sh "$tmpdir/remote-install-checkout/install.sh" > "$tmpdir/remote-install-output"
+test -f "$tmpdir/remote-install-source/home/.chezmoidata/profiles.yaml"
+grep -F 'Created machine-local data file: home/.chezmoidata/profiles.yaml' "$tmpdir/remote-install-output" > /dev/null
 test -f "$tmpdir/remote-install-source/home/.chezmoidata/profile.yaml"
 grep -F 'Created machine-local data file: home/.chezmoidata/profile.yaml' "$tmpdir/remote-install-output" > /dev/null
-mkdir -p "$tmpdir/profile-instruction-source/home/.chezmoiscripts" "$tmpdir/profile-instruction-source/home/.chezmoitemplates/codex" "$tmpdir/profile-instruction-source/home/.chezmoitemplates/vscode" "$tmpdir/profile-instruction-source/scripts" "$tmpdir/profile-instruction-home/.codex"
+mkdir -p "$tmpdir/profile-instruction-source/home/.chezmoiscripts" "$tmpdir/profile-instruction-source/home/.chezmoitemplates/codex" "$tmpdir/profile-instruction-source/home/.chezmoitemplates/vscode" "$tmpdir/profile-instruction-source/home/.chezmoitemplates/path" "$tmpdir/profile-instruction-source/scripts" "$tmpdir/profile-instruction-home/.codex"
 printf '%s\n' home > "$tmpdir/profile-instruction-source/.chezmoiroot"
 cp scripts/share-codex-config.py "$tmpdir/profile-instruction-source/scripts/"
 cp scripts/configure-vscode-profiles.py "$tmpdir/profile-instruction-source/scripts/"
 cp home/.chezmoitemplates/codex/config.toml "$tmpdir/profile-instruction-source/home/.chezmoitemplates/codex/"
 cp home/.chezmoitemplates/vscode/settings-profile.json "$tmpdir/profile-instruction-source/home/.chezmoitemplates/vscode/"
+cp home/.chezmoitemplates/path/profiles-dir "$tmpdir/profile-instruction-source/home/.chezmoitemplates/path/"
 printf '%s\n' 'Shared agent baseline' > "$tmpdir/profile-instruction-home/.codex/AGENTS.md"
 cp home/.chezmoiscripts/run_onchange_setup-profiles.sh.tmpl "$tmpdir/profile-instruction-source/home/.chezmoiscripts/setup.tmpl"
 "$CHEZMOI" --source "$tmpdir/profile-instruction-source" --config "$tmpdir/chezmoi.toml" --override-data "$PROFILE_INSTRUCTION_TEST_DATA" execute-template --file "$tmpdir/profile-instruction-source/home/.chezmoiscripts/setup.tmpl" > "$tmpdir/profile-instruction-setup.sh"
@@ -152,15 +166,39 @@ grep -Fx 'auth status' "$tmpdir/gh-alias-result" > /dev/null
 "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data '{"profiles":null}' cat ~/.config/zsh/aliases.zsh > "$tmpdir/aliases-no-profiles"
 ! grep -F 'alias dotfiles-' "$tmpdir/aliases-no-profiles" > /dev/null
 "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data "$PROFILE_TEST_DATA" execute-template --init --file home/.chezmoi.yaml.tmpl > "$tmpdir/chezmoi.yaml"
-grep -Fx '  defaultProfile: Default' "$tmpdir/chezmoi.yaml" > /dev/null
+! grep -F 'defaultProfile:' "$tmpdir/chezmoi.yaml" > /dev/null
+! grep -F 'ollamaHost:' "$tmpdir/chezmoi.yaml" > /dev/null
 ! grep -E '^  profiles:' "$tmpdir/chezmoi.yaml" > /dev/null
 mkdir -p "$tmpdir/config-source"
 "$CHEZMOI" --source "$tmpdir/config-source" --config "$tmpdir/chezmoi.yaml" data --format=json > "$tmpdir/chezmoi-config-data.json"
-python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); assert data["profilesDir"] == ".config/profiles" and "profiles" not in data' "$tmpdir/chezmoi-config-data.json"
+python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); assert "defaultProfile" not in data and "workspaceDir" not in data and "profilesDir" not in data and "profiles" not in data' "$tmpdir/chezmoi-config-data.json"
 grep -F "alias dotfiles='profile-use vscode Default" "$tmpdir/aliases" > /dev/null
 grep -F "alias dotfiles-review='profile-use vscode review" "$tmpdir/aliases" > /dev/null
+grep -F 'alias ws='\''builtin cd -- "$HOME"/"Workspace"'\''' "$tmpdir/aliases" > /dev/null
+grep -F 'alias projects='\''builtin cd -- "$HOME"/"Projects"'\''' "$tmpdir/aliases" > /dev/null
+! grep -F 'ws() {' "$tmpdir/aliases" > /dev/null
+chezmoi --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data "$SPECIAL_PATH_TEST_DATA" cat ~/.config/zsh/aliases.zsh > "$tmpdir/aliases-special-path"
+zsh -n "$tmpdir/aliases-special-path"
+mkdir -p "$tmpdir/special-path-home/John's folder/\$HOME"
+HOME="$tmpdir/special-path-home" zsh -fic 'source "$1"; eval ws; test "$PWD" = "$2"' _ "$tmpdir/aliases-special-path" "$tmpdir/special-path-home/John's folder/\$HOME"
+if "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data "$ALIAS_COLLISION_TEST_DATA" cat ~/.config/zsh/aliases.zsh > "$tmpdir/alias-collision" 2>&1; then
+  printf '%s\n' 'Expected a path alias colliding with a profile alias to fail template validation.' >&2
+  exit 1
+fi
+grep -F 'path alias "code-review" conflicts with another generated alias' "$tmpdir/alias-collision" > /dev/null
+if "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data '{"path":{"workspace":{"path":"~/Workspace","alias":"c"}}}' cat ~/.config/zsh/aliases.zsh > "$tmpdir/static-alias-collision" 2>&1; then
+  printf '%s\n' 'Expected a path alias colliding with a built-in alias to fail template validation.' >&2
+  exit 1
+fi
+grep -F 'path alias "c" conflicts with another generated alias' "$tmpdir/static-alias-collision" > /dev/null
+if "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data '{"path":{"profiles":{"path":"relative"}}}' execute-template --file home/.chezmoiscripts/run_onchange_setup-profiles.sh.tmpl > "$tmpdir/invalid-profiles-path" 2>&1; then
+  printf '%s\n' 'Expected a relative profile path to fail template validation.' >&2
+  exit 1
+fi
+grep -F 'path.profiles.path must be a home-relative path starting with ~/' "$tmpdir/invalid-profiles-path" > /dev/null
 grep -F '$(dirname "$(chezmoi source-path)")' "$tmpdir/aliases" > /dev/null
 "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" cat ~/.config/zsh/exports.zsh > "$tmpdir/exports"
+grep -F 'export OLLAMA_HOST="127.0.0.1:11434"' "$tmpdir/exports" > /dev/null
 "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data "$PROFILE_TEST_DATA" cat ~/.config/zsh/functions.zsh > "$tmpdir/functions"
 "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data '{"profiles":null}' cat ~/.config/zsh/functions.zsh > "$tmpdir/functions-no-profiles"
 ! grep -E '^(profile-enabled|profile-git-config|profile-clear-environment|profile-clear-gh-environment|profile-use-gh|profile-use-vscode|profile-use-git|profile-use-cli|profile-use)\(\)' "$tmpdir/functions-no-profiles" > /dev/null
@@ -406,7 +444,7 @@ printf '%s\n' '#!/bin/sh' '[ "$#" -eq 2 ] && [ "$1" = which ] && [ "$2" = rg ] |
 printf '%s\n' '#!/bin/sh' '[ "$#" -eq 2 ] && [ "$1" = --locate-extension ] && [ "$2" = continue.continue ] || exit 1' 'printf "%s\n" "${CHEZMOI_VSCODE_TEST_EXTENSION_PATH:-/mise-test/vscode/extensions/continue.continue}"' > "$tmpdir/bin/code"
 chmod +x "$tmpdir/bin/mise" "$tmpdir/bin/code"
 PATH="$tmpdir/bin:$PATH" "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" execute-template --file 'home/private_Library/private_Application Support/private_Code/User/settings.json.tmpl' > "$tmpdir/vscode-settings.json"
-python3 -c 'import json,sys; settings=json.load(open(sys.argv[1])); workspace=json.load(open(sys.argv[2])); associations=workspace["files.associations"]; assert "**/.chezmoitemplates/vscode/settings.json" not in settings["files.associations"]; assert associations["**/*.tmpl"] == "go-template"; assert associations["**/.chezmoitemplates/vscode/settings.json"] == "go-template"' "$tmpdir/vscode-settings.json" .vscode/settings.json
+python3 -c 'import json,sys; settings=json.load(open(sys.argv[1])); workspace=json.load(open(sys.argv[2])); associations=workspace["files.associations"]; assert "**/.chezmoitemplates/vscode/settings.json" not in settings["files.associations"]; assert associations["**/*.tmpl"] == "go-template"; assert associations["**/.chezmoitemplates/vscode/*"] == "go-template"; assert associations["**/.chezmoitemplates/gh/config.yml"] == "go-template"' "$tmpdir/vscode-settings.json" .vscode/settings.json
 python3 -m json.tool "$tmpdir/vscode-settings.json" > /dev/null
 python3 -c 'import json,sys; settings=json.load(open(sys.argv[1])); keys=set(settings)-{"yaml.schemas","workbench.settings.applyToAllProfiles","chat.instructionsFilesLocations"}; shared=set(settings["workbench.settings.applyToAllProfiles"]); assert keys == shared, "VS Code shared settings must be listed in applyToAllProfiles"; assert "chat.instructionsFilesLocations" not in shared, "VS Code instruction locations must remain profile-specific"; assert settings["todo-tree.ripgrep.ripgrep"] == "/mise-test/ripgrep/rg", "VS Code ripgrep path must come from mise which rg"; assert "file:///mise-test/vscode/extensions/continue.continue/config-yaml-schema.json" in settings["yaml.schemas"], "Continue schema path must come from code --locate-extension"' "$tmpdir/vscode-settings.json"
 for template in 'home/dot_config/Code/User/settings.json.tmpl' 'home/AppData/Roaming/Code/User/settings.json.tmpl'; do

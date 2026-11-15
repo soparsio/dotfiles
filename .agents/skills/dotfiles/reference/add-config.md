@@ -1,7 +1,7 @@
 # Add or Reorganize Dotfiles Configuration
 
 1. Read `AGENTS.md`, `.chezmoiroot`, neighboring files, `Makefile`, and Git status. Keep managed sources under `home/`, the chezmoi source root.
-2. Follow existing layout and filename conventions. Preserve `dot_`, `private_`, and `.tmpl` attributes. Put shared template fragments in `home/.chezmoitemplates/`, shared defaults in `home/.chezmoidata.yaml`, and machine-specific values in local `~/.config/chezmoi/chezmoi.toml`.
+2. Follow existing layout and filename conventions. Preserve `dot_`, `private_`, and `.tmpl` attributes. Put shared template fragments in `home/.chezmoitemplates/`, shared defaults in `home/.chezmoidata.yaml` when needed, and machine-specific values in local `~/.config/chezmoi/chezmoi.yaml` or the equivalent config file.
 3. Check macOS, Linux, WSL, and native Windows behavior where relevant. Use `.chezmoi.os` for genuine platform differences and preserve platform-specific target paths and naming.
 4. For setup scripts, follow existing `run_once_` or `run_onchange_` patterns and make reruns safe. Keep prerequisites explicit; do not add installs or destructive actions beyond the request.
 5. Update README when configuration changes affect setup, platform behavior, or everyday use. Keep examples free of machine-specific values and secrets.

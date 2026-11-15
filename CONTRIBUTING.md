@@ -21,8 +21,9 @@ configuration there and preserve filename attributes such as `dot_`,
 `private_`, and `.tmpl`. Put reusable template logic in
 `home/.chezmoitemplates/`.
 
-Keep portable defaults in tracked data such as `home/.chezmoidata.yaml`.
-Machine-specific data belongs in ignored `home/.chezmoidata/` files or local
+Keep portable defaults in tracked data such as `home/.chezmoidata.yaml` when
+common values need to be shared. Machine-specific data belongs in ignored
+`home/.chezmoidata/` files or local
 `~/.config/chezmoi/chezmoi.yaml`; do not commit those local values. Keep
 starter data safe and use placeholders.
 

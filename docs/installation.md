@@ -34,7 +34,9 @@ powershell -NoProfile -Command "Invoke-Expression (Invoke-RestMethod 'https://ra
 The installers use or install chezmoi, initialize the repository, copy starter
 files only when local machine-data files are missing, show a rendered diff,
 and ask before applying. Answer `y` or `yes` to apply; any other response
-leaves the home directory unchanged.
+leaves the home directory unchanged. On first initialization, chezmoi prompts
+once for the global Git name and email and saves them in the local chezmoi
+configuration.
 
 ## Install from a local checkout
 
