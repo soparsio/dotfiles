@@ -204,8 +204,9 @@ for user-facing local override guidance.
 
 `make check` renders selected templates into temporary homes and checks
 template behavior, shell syntax, JSON, and whitespace without applying files
-to the current home directory. `make check-assistant-configs` separately
-validates assistant hook JSON.
+to the current home directory, including assistant hook/tool JSON. Run focused
+behavior suites with `make check-bootstrap`, `make check-profiles`,
+`make check-platforms`, `make check-profile-state`, or `make check-vscode`.
 
 For a configuration change:
 

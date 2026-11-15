@@ -13,6 +13,10 @@ if [ "${1:-}" = --fix ]; then
   shift
 fi
 
+if [ "$#" -eq 0 ] && [ -n "${TEMPLATE_PATH:-}" ]; then
+  set -- "$TEMPLATE_PATH"
+fi
+
 case ${1:-} in
   -h|--help)
     usage
@@ -20,20 +24,30 @@ case ${1:-} in
     ;;
 esac
 
-if [ "$#" -gt 1 ]; then
+if [ "$#" -gt 1 ] || { [ "$fix" -eq 1 ] && [ "$#" -ne 1 ]; }; then
   usage
   exit 2
 fi
 
+script_dir=$(CDPATH= cd "$(dirname "$0")" && pwd)
+repo_root=$(CDPATH= cd "$script_dir/.." && pwd)
 CHEZMOI=${CHEZMOI:-chezmoi}
-CHEZMOI_SOURCE=${CHEZMOI_SOURCE:-$PWD}
-if ! command -v "$CHEZMOI" >/dev/null 2>&1; then
-  if command -v chezmoi >/dev/null 2>&1; then
-    CHEZMOI=chezmoi
-  else
-    printf 'Chezmoi executable not found: %s\n' "$CHEZMOI" >&2
-    exit 127
-  fi
+CHEZMOI_SOURCE=${CHEZMOI_SOURCE:-$repo_root}
+case $CHEZMOI_SOURCE in
+  /*) ;;
+  *) CHEZMOI_SOURCE="$PWD/$CHEZMOI_SOURCE" ;;
+esac
+CHEZMOI_SOURCE=$(CDPATH= cd "$CHEZMOI_SOURCE" && pwd)
+cd "$CHEZMOI_SOURCE"
+
+if ! command -v "$CHEZMOI" > /dev/null 2>&1; then
+  printf 'Chezmoi executable not found: %s\n' "$CHEZMOI" >&2
+  exit 127
+fi
+
+if [ "$fix" -eq 1 ] && ! command -v shfmt > /dev/null 2>&1; then
+  printf '%s\n' 'shfmt is required when using --fix.' >&2
+  exit 127
 fi
 
 if [ "$#" -eq 1 ]; then
