@@ -33,19 +33,26 @@ shell configuration.
 
 ## Validate changes
 
-Run the relevant checks from the repository root:
+Use `make help` to list the available checks. Run the full suite from the
+repository root:
 
 ```sh
 make check
 ```
 
-The full check validates rendered templates, shell syntax, JSON, profile
-behavior, and tracked whitespace without applying changes to your home
-directory. Run the assistant configuration check when changing its JSON files:
+The full check validates rendered templates, shell syntax, assistant JSON,
+profile behavior, and tracked whitespace without applying changes to your home
+directory. For focused behavior tests, use `make check-bootstrap`,
+`make check-profiles`, `make check-platforms`, `make check-profile-state`, or
+`make check-vscode`. To lint one shell template or directory, use:
 
 ```sh
-make check-assistant-configs
+make lint-shell-template TEMPLATE_PATH=home/dot_config/zsh/functions.zsh.tmpl
 ```
+
+For shell-check failures, `CHECK_TRACE=1 make check-repository` prints the
+commands as they run. The assistant JSON check is also available on its own as
+`make check-assistant-configs`.
 
 For documentation-only changes, check local links and heading anchors and run:
 

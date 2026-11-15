@@ -13,7 +13,8 @@ The full repository check uses:
 - Zsh to validate Zsh configuration
 - Python 3 for isolated tests and configuration helpers
 - Git, Make, and a POSIX-compatible shell
-- `shfmt` for shell-template formatting checks
+- `gh` for GitHub CLI profile checks
+- `shfmt` when explicitly normalizing a shell template with `FIX=1`
 
 Install any missing tools using the environment's normal package or version
 manager. The checks do not install dependencies or apply dotfiles.
@@ -42,19 +43,29 @@ overall system design, see [Architecture](../ARCHITECHTURE.md).
 Run the full check from the repository root:
 
 ```sh
+make help
 make check
 ```
 
-The target runs `scripts/check.sh` and `scripts/lint-shell-template.sh`. It
-renders selected templates, validates shell syntax and JSON, exercises profile
-setup behavior and starter-data copying, checks package and profile
-configuration, and validates tracked whitespace. Temporary files and test
-homes are removed when the checks finish. The target does not apply
-configuration or install managed packages.
+`make check` runs the isolated behavior checks, all shell-template lint checks,
+and the assistant hook/tool JSON validation. The behavior check renders
+selected templates, exercises profile setup and starter-data copying, checks
+platform package configuration, and validates tracked whitespace. Temporary
+files and test homes are removed when the checks finish. The target does not
+apply configuration or install managed packages.
+
+For focused behavior checks, use `make check-bootstrap`, `make check-profiles`,
+`make check-platforms`, `make check-profile-state`, or `make check-vscode`.
+Platform, profile-state, and VS Code checks also render their required profile
+fixtures. `make check-repository` remains the complete behavior suite.
 
 Run `make check` after changing shell files, templates, or managed JSON. The
-check scripts print progress and a pass list; stop on the first failure and
-resolve it before treating the change as validated.
+checks stop on the first failure. Set `CHECK_TRACE=1` to print the commands in
+the behavior checks when investigating a failure:
+
+```sh
+CHECK_TRACE=1 make check-repository
+```
 
 ### Check assistant configuration JSON
 
@@ -64,7 +75,8 @@ To validate the tracked assistant hook and tool configuration files separately:
 make check-assistant-configs
 ```
 
-This target uses Python's JSON parser on the files listed in the `Makefile`.
+This target uses Python's JSON parser on the files listed in the `Makefile`; it
+also runs as part of `make check`.
 
 ### Lint a shell template
 

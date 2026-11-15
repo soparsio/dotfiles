@@ -320,8 +320,8 @@ workflow, test coverage, and other validation targets.
 - **Codex profile setup reports a conflict:** Review existing
   `~/.config/profiles/<id>/codex/config.toml` files. Setup preserves conflicting
   files rather than overwriting them.
-- **Checks fail:** Confirm chezmoi, Zsh, Python 3, and Git are installed, then
-  rerun `make check` for the detailed failing check.
+- **Checks fail:** Confirm chezmoi, Zsh, Python 3, Git, and the GitHub CLI
+  (`gh`) are installed, then rerun `make check` for the failing check.
 
 For detailed diagnostics and platform-specific recovery steps, see
 [docs/troubleshooting.md](docs/troubleshooting.md).

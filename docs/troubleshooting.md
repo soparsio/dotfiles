@@ -176,8 +176,9 @@ profile behavior:
 make check
 ```
 
-The checks require chezmoi, Zsh, Python 3, and Git. Validate assistant-hook
-JSON separately with `make check-assistant-configs`. On native Windows, run
+The full checks require chezmoi, Zsh, Python 3, Git, and the GitHub CLI
+(`gh`). Assistant-hook JSON is included in `make check` and can also be
+validated alone with `make check-assistant-configs`. On native Windows, run
 those repository checks from an environment with the required tools available.
 
 For general setup instructions, see [README.md](../README.md). For system
