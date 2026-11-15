@@ -5,8 +5,8 @@ set -eu
 
 CHEZMOI=${CHEZMOI:-chezmoi}
 CHEZMOI_SOURCE=${CHEZMOI_SOURCE:-$PWD}
-PROFILE_TEST_DATA='{"defaultProfile":"Default","path":{"workspace":{"path":"~/Workspace","alias":"ws"},"profiles":{"path":"~/.config/profiles"},"projects":{"path":"~/Projects","alias":"projects"}},"profiles":{"default":{"tools":["codex","vscode"],"name":"Default"},"review":{"tools":["codex","gh","git","vscode"],"alias":"review-account","name":"Review Profile","email":"profile@example.test","git":{"name":"Review User","email":"review@example.test"}},"git_only":{"tools":["git","vscode"],"email":"git-only@example.test"},"vscode_only":{"tools":["vscode"]},"gh-default":{"tools":["gh"],"alias":"fallback-login"},"gh-git-default":{"tools":["gh","git"],"alias":"custom-alias","git":{"name":"Fallback Git","email":"fallback@example.test"}}}}'
-NUMERIC_PROFILE_TEST_DATA='{"path":{"profiles":{"path":"~/.config/profiles"}},"profiles":{"numeric":{"tools":["git","gh"],"alias":123,"name":123}}}'
+PROFILE_TEST_DATA='{"editor":"code --wait","defaultProfile":"Default","path":{"workspace":{"path":"~/Workspace","alias":"ws"},"profiles":{"path":"~/.config/profiles"},"projects":{"path":"~/Projects","alias":"projects"}},"profiles":{"default":{"tools":["codex","vscode"],"name":"Default"},"review":{"tools":["codex","gh","git","vscode"],"alias":"review-account","name":"Review Profile","email":"profile@example.test","git":{"name":"Review User","email":"review@example.test"}},"git_only":{"tools":["git","vscode"],"email":"git-only@example.test"},"vscode_only":{"tools":["vscode"]},"gh-default":{"tools":["gh"],"alias":"fallback-login"},"gh-git-default":{"tools":["gh","git"],"alias":"custom-alias","git":{"name":"Fallback Git","email":"fallback@example.test"}}}}'
+NUMERIC_PROFILE_TEST_DATA='{"editor":"code --wait","path":{"profiles":{"path":"~/.config/profiles"}},"profiles":{"numeric":{"tools":["git","gh"],"alias":123,"name":123}}}'
 PROFILE_INSTRUCTION_TEST_DATA='{"path":{"profiles":{"path":"~/.config/profiles"}},"profiles":{"instructions":"All profile base","inherit":{"tools":["codex"]},"empty_profile":{"tools":["codex"],"instructions":""},"empty_tool":{"tools":["codex"],"instructions":"Parent profile base","codex":{"instructions":""}},"specific":{"tools":["codex"],"instructions":"Specific\u0027s base"},"tool":{"tools":["codex"],"instructions":"Profile base","codex":{"force":true,"instructions":"Tool replacement"}}}}'
 PROFILE_FORCE_TEST_DATA='{"path":{"profiles":{"path":"~/.config/profiles"}},"profiles":{"instructions":"Global base","ai_append":{"tools":["codex"],"instructions":"Profile base","ai":{"force":false,"instructions":"AI append"},"codex":{"force":false,"instructions":"Codex append"}},"ai_default":{"tools":["codex"],"ai":{"instructions":"AI default append"}},"ai_force":{"tools":["codex"],"instructions":"Profile base","ai":{"force":true,"instructions":"AI replacement"}},"tool_force_false":{"tools":["codex"],"instructions":"Profile base","codex":{"force":false,"instructions":"Tool append"}},"tool_default":{"tools":["codex"],"instructions":"Tool parent base","codex":{"instructions":"Tool default append"}},"tool_force_true":{"tools":["codex"],"instructions":"Profile base","codex":{"force":true,"instructions":"Tool replacement"}}}}'
 SPECIAL_PATH_TEST_DATA='{"path":{"workspace":{"path":"~/John\u0027s folder/$HOME","alias":"ws"}}}'
@@ -122,7 +122,7 @@ test "$(readlink "$tmpdir/empty-profile-home/.config/profiles/empty/codex/AGENTS
 "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data "$PROFILE_TEST_DATA" cat ~/.config/zsh/aliases.zsh > "$tmpdir/aliases"
 grep -Fx "alias code='profile-use vscode Default'" "$tmpdir/aliases" > /dev/null
 ! grep -E "alias (git|gh)-review-account=" "$tmpdir/aliases" > /dev/null
-if "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data '{"profiles":{"bad":{"alias":"bad alias","tools":["git"]}}}' cat ~/.config/git/config > "$tmpdir/invalid-profile-alias" 2>&1; then
+if "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data '{"editor":"code --wait","profiles":{"bad":{"alias":"bad alias","tools":["git"]}}}' cat ~/.config/git/config > "$tmpdir/invalid-profile-alias" 2>&1; then
   printf '%s\n' 'Invalid profile alias was accepted.' >&2
   exit 1
 fi
@@ -197,7 +197,7 @@ if "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --overr
 fi
 grep -F 'path.profiles.path must be a home-relative path starting with ~/' "$tmpdir/invalid-profiles-path" > /dev/null
 grep -F '$(dirname "$(chezmoi source-path)")' "$tmpdir/aliases" > /dev/null
-"$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" cat ~/.config/zsh/exports.zsh > "$tmpdir/exports"
+"$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data '{"editor":"code --wait","host":{}}' cat ~/.config/zsh/exports.zsh > "$tmpdir/exports"
 grep -F 'export OLLAMA_HOST="127.0.0.1:11434"' "$tmpdir/exports" > /dev/null
 "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data "$PROFILE_TEST_DATA" cat ~/.config/zsh/functions.zsh > "$tmpdir/functions"
 "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data '{"profiles":null}' cat ~/.config/zsh/functions.zsh > "$tmpdir/functions-no-profiles"
