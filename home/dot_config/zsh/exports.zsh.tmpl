@@ -9,10 +9,12 @@ typeset -U path PATH
 [[ -d "$HOME/.lmstudio/bin" ]] && path=("$HOME/.lmstudio/bin" $path)
 
 # Application settings
+{{- $host := index . "host" | default dict }}
+{{- $ollamaHost := index $host "ollama" | default "127.0.0.1:11434" }}
 if [[ -n ${OLLAMA_HOST:-} ]]; then
   export OLLAMA_HOST
 elif command -v ollama >/dev/null 2>&1; then
-  export OLLAMA_HOST={{ .ollamaHost | quote }}
+  export OLLAMA_HOST={{ $ollamaHost | quote }}
 fi
 
 export EDITOR={{ .editor | quote }}

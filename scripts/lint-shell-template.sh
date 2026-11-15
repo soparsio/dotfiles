@@ -97,7 +97,7 @@ format_template() {
   "$CHEZMOI" \
     --source "$CHEZMOI_SOURCE" \
     --config "$tmpdir/chezmoi.toml" \
-    --override-data '{"profiles":{"lint":{"tools":["codex","gh","git","vscode"]}}}' \
+    --override-data '{"editor":"code --wait","profiles":{"lint":{"tools":["codex","gh","git","vscode"]}}}' \
     execute-template --file "$template_path" > "$rendered_path"
   shfmt -w -ln "$shell_dialect" "$rendered_path"
 }
@@ -156,7 +156,7 @@ printf '%s\n' "$templates" | while IFS= read -r template; do
     "$CHEZMOI" \
       --source "$CHEZMOI_SOURCE" \
       --config "$tmpdir/chezmoi.toml" \
-      --override-data '{"profiles":{"lint":{"tools":["codex","gh","git","vscode"]}}}' \
+      --override-data '{"editor":"code --wait","profiles":{"lint":{"tools":["codex","gh","git","vscode"]}}}' \
       execute-template --file "$template" > "$tmpdir/rendered.sh"
   fi
   check_whitespace "$tmpdir/rendered.sh" "$template (rendered)"

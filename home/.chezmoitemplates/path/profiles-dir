@@ -1,0 +1,10 @@
+{{- $path := index . "path" | default dict -}}
+{{- $profiles := index $path "profiles" | default dict -}}
+{{- $profilesPath := index $profiles "path" | default "~/.config/profiles" -}}
+{{- if not (kindIs "string" $profilesPath) -}}
+  {{- fail "path.profiles.path must be a home-relative path starting with ~/" -}}
+{{- end -}}
+{{- if not (hasPrefix "~/" $profilesPath) -}}
+  {{- fail "path.profiles.path must be a home-relative path starting with ~/" -}}
+{{- end -}}
+{{- trimPrefix "~/" $profilesPath -}}

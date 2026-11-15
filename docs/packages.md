@@ -31,9 +31,9 @@ official installer on Linux/WSL, and WinGet on native Windows.
 
 ### Editor preference
 
-The shared `editor` default is `code --wait`. Override it in
-`~/.config/chezmoi/chezmoi.yaml`; Zsh exports the selected value as `EDITOR`,
-`VISUAL`, and `GIT_EDITOR`.
+The machine-local `editor` value in `home/.chezmoidata/profile.yaml` defaults
+to `code --wait`. Zsh exports it as `EDITOR`, `VISUAL`, and `GIT_EDITOR`; Git
+and GitHub CLI also use it as their editor.
 
 ### Vim and Neovim
 

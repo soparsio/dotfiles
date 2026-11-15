@@ -1,0 +1,3 @@
+# Host-specific settings. Adjust the Ollama endpoint for this machine.
+host:
+  ollama: 127.0.0.1:11434

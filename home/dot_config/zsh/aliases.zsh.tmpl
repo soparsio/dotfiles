@@ -31,11 +31,72 @@ alias dcu="docker compose up -d"
 alias dcd="docker compose down"
 
 # Path shortcuts
-ws() {
-  builtin cd -- "$HOME"/{{ .workspaceDir | quote }}
-}
-alias c="claude"
+{{- $path := index . "path" | default dict }}
+{{- $pathAliases := dict }}
+{{- $reservedAliases := dict }}
+{{- range (list ".." "..." "...." "la" "ll" "ga" "gs" "gd" "gds" "gb" "gco" "gcm" "gl" "gpl" "gp" "dfh" "reload" "dps" "dcu" "dcd" "c") }}
+  {{- $_ := set $reservedAliases . true }}
+{{- end }}
 {{- $profiles := (index . "profiles") | default dict }}
+{{- if $profiles }}
+  {{- $_ := set $reservedAliases "dotfiles" true }}
+  {{- if index . "defaultProfile" }}
+    {{- $_ := set $reservedAliases "code" true }}
+  {{- end }}
+  {{- range $profile, $config := $profiles }}
+    {{- $tools := $config }}
+    {{- if not (kindIs "slice" $config) }}
+      {{- $tools = index $config "tools" }}
+    {{- end }}
+    {{- range $tool := $tools }}
+      {{- if eq $tool "vscode" }}
+        {{- $_ := set $reservedAliases (printf "code-%v" $profile) true }}
+        {{- $_ := set $reservedAliases (printf "dotfiles-%v" $profile) true }}
+      {{- else if not (or (eq $tool "antigravity") (eq $tool "gh") (eq $tool "git")) }}
+        {{- $_ := set $reservedAliases (printf "%v-%v" $tool $profile) true }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- range $name, $settings := $path }}
+  {{- if not (kindIs "map" $settings) }}
+    {{- fail (printf "path entry %q must be a table" $name) }}
+  {{- end }}
+  {{- $alias := index $settings "alias" }}
+  {{- if and (hasKey $settings "alias") (not (kindIs "string" $alias)) }}
+    {{- fail (printf "path entry %q alias must be a string" $name) }}
+  {{- end }}
+  {{- if $alias }}
+    {{- if not (regexMatch "^[A-Za-z_][A-Za-z0-9._-]*$" $alias) }}
+      {{- fail (printf "invalid path alias %q for %q" $alias $name) }}
+    {{- end }}
+    {{- if hasKey $reservedAliases $alias }}
+      {{- fail (printf "path alias %q conflicts with another generated alias" $alias) }}
+    {{- end }}
+    {{- if hasKey $pathAliases $alias }}
+      {{- fail (printf "duplicate path alias %q" $alias) }}
+    {{- end }}
+    {{- $_ := set $pathAliases $alias true }}
+    {{- $targetPath := index $settings "path" | default "" }}
+    {{- if not (kindIs "string" $targetPath) }}
+      {{- fail (printf "path entry %q path must be a string" $name) }}
+    {{- end }}
+    {{- if not $targetPath }}
+      {{- fail (printf "path entry %q requires a path when it defines alias %q" $name $alias) }}
+    {{- end }}
+    {{- if not (hasPrefix "~/" $targetPath) }}
+      {{- fail (printf "path entry %q path must be a home-relative path starting with ~/" $name) }}
+    {{- end }}
+    {{- $pathPrefix := trimPrefix "~/" $targetPath }}
+    {{- if regexMatch "[[:cntrl:]]" $pathPrefix }}
+      {{- fail (printf "path entry %q path must not contain control characters" $name) }}
+    {{- end }}
+    {{- $escapedPath := $pathPrefix | replace "\\" "\\\\" | replace "\"" "\\\"" | replace "$" "\\$" | replace "`" "\\`" }}
+    {{- $aliasValue := printf "builtin cd -- \"$HOME\"/\"%s\"" $escapedPath | replace "'" "'\\''" }}
+alias {{ $alias }}='{{ $aliasValue }}'
+  {{- end }}
+{{- end }}
+alias c="claude"
 {{- if $profiles }}
 alias dotfiles='profile-use vscode Default "$(dirname "$(chezmoi source-path)")"'
   {{- with (index . "defaultProfile") }}

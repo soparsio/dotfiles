@@ -88,7 +88,7 @@ extract() {
 }
 
 {{- $profiles := (index . "profiles") | default dict }}
-{{- $profilesDir := (index . "profilesDir") | default ".config/profiles" }}
+{{- $profilesDir := includeTemplate "path/profiles-dir" . }}
 {{- if and (kindIs "map" $profiles) (gt (len $profiles) 0) }}
   {{- range $profile, $config := $profiles }}
     {{- if not (regexMatch "^[a-zA-Z0-9._-]+$" $profile) }}

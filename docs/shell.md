@@ -32,11 +32,14 @@ The exports module:
   LM Studio paths only when those directories exist.
 - Preserves an already-set `OLLAMA_HOST`; otherwise, it sets the configured
   host when the `ollama` command is available.
-- Sets `EDITOR`, `VISUAL`, and `GIT_EDITOR` from the local `editor` data value.
+- Sets `EDITOR`, `VISUAL`, and `GIT_EDITOR` from `editor` in the local
+  `home/.chezmoidata/profile.yaml` data.
 - Points Atuin to `~/.config/atuin/`.
 
-Shared defaults are in `home/.chezmoidata.yaml`; override machine-specific
-values in `~/.config/chezmoi/chezmoi.yaml`. See
+The host-specific Ollama endpoint is `host.ollama` in the ignored
+`home/.chezmoidata/host.yaml`. Other machine-specific paths are in the ignored
+`home/.chezmoidata/path.yaml`; additional values can be set in
+`~/.config/chezmoi/chezmoi.yaml`. See
 [Customization & Local Overrides](customization.md).
 
 ## Functions
