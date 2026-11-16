@@ -87,7 +87,7 @@ extract() {
   esac
 }
 
-{{- $profiles := (index . "profiles") | default dict }}
+{{- $profiles := (index . "accounts") | default dict }}
 {{- $profilesDir := includeTemplate "path/profiles-dir" . }}
 {{- if and (kindIs "map" $profiles) (gt (len $profiles) 0) }}
   {{- range $profile, $config := $profiles }}

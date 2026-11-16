@@ -31,7 +31,7 @@ official installer on Linux/WSL, and WinGet on native Windows.
 
 ### Editor preference
 
-The machine-local `editor` value in `home/.chezmoidata/profile.yaml` defaults
+The machine-local `editor` value in `home/.chezmoidata/99-local.yaml` defaults
 to `code --wait`. Zsh exports it as `EDITOR`, `VISUAL`, and `GIT_EDITOR`; Git
 and GitHub CLI also use it as their editor.
 

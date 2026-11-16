@@ -33,7 +33,7 @@ The exports module:
 - Preserves an already-set `OLLAMA_HOST`; otherwise, it sets the configured
   host when the `ollama` command is available.
 - Sets `EDITOR`, `VISUAL`, and `GIT_EDITOR` from `editor` in the local
-  `home/.chezmoidata/profile.yaml` data.
+  `home/.chezmoidata/99-local.yaml` data.
 - Points Atuin to `~/.config/atuin/`.
 
 The host-specific Ollama endpoint is `host.ollama` in the ignored

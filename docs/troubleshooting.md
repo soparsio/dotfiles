@@ -44,19 +44,19 @@ $repoRoot = Split-Path $sourceRoot -Parent
 & "$repoRoot/scripts/copy-example-data.ps1" -SourceDir $repoRoot
 ```
 
-The local profile data file is `home/.chezmoidata/profiles.yaml`; the local
-assistant defaults file is `home/.chezmoidata/ai.yaml`. Both are machine-local
-and ignored by Git.
+Account and host preference data is in `home/.chezmoidata/99-local.yaml`;
+shared fallback values are in `home/.chezmoidata/00-defaults.yaml`. Shared
+assistant defaults are in `home/.chezmoidata/ai.yaml`.
 
-To confirm which profile IDs chezmoi loaded without printing their settings:
+To confirm which account IDs chezmoi loaded without printing their settings:
 
 ```sh
 chezmoi data --format=json |
-  python3 -c 'import json,sys; print("\n".join(sorted(json.load(sys.stdin).get("profiles", {}))))'
+  python3 -c 'import json,sys; print("\n".join(sorted(json.load(sys.stdin).get("accounts", {}))))'
 ```
 
 If a value is absent, confirm it is valid YAML and is under the expected
-`profiles:` or `ai:` key. Keep personal values out of diagnostic output you
+`accounts:` or `ai:` key. Keep personal values out of diagnostic output you
 share.
 
 ## Applying changes or running setup
@@ -69,8 +69,8 @@ If an apply reports a conflict, preserve the existing destination and inspect
 both source and target before deciding which version should win. Do not use
 `--force` as a first troubleshooting step.
 
-If profile setup deletes a directory, check whether its profile ID is still
-present in `home/.chezmoidata/profiles.yaml` and whether that profile has a
+If profile setup deletes a directory, check whether its account ID is still
+present under `accounts` in `home/.chezmoidata/99-local.yaml` and whether it has a
 non-empty `tools` list. The setup script removes profile directories whose IDs
 are no longer configured. Back up any local state before removing a profile
 from the data file.
@@ -79,7 +79,7 @@ from the data file.
 
 ### A profile command uses the wrong identity
 
-Profile Git identity resolves from `profiles.<id>.git.name/email`, then the
+Profile Git identity resolves from `accounts.<id>.git.name/email`, then the
 profile's `name` and `email`, then global Git configuration. Check the relevant
 local profile entry and global Git configuration. To inspect the effective
 Git identity locally:
@@ -125,7 +125,7 @@ Launch again with `code-<profile>` after it has exited.
 ## Assistant instructions and Codex configuration
 
 Profile instruction files are generated from local data. Edit
-`home/.chezmoidata/profiles.yaml` or `home/.chezmoidata/ai.yaml`, not generated
+`home/.chezmoidata/99-local.yaml` or `home/.chezmoidata/ai.yaml`, not generated
 files under `~/.config/profiles/`. With `force: true`, custom instructions
 replace inherited text; otherwise they append. Existing unmanaged instruction
 files and custom symlinks are preserved, so an old custom file may keep the

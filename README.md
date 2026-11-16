@@ -237,10 +237,10 @@ can be overridden per machine.
 
 ### Shared and machine-specific settings
 
-The local editor preference, Ollama endpoint, and filesystem paths are stored
-in ignored files under `home/.chezmoidata/`. The local-data setup helper copies
-their examples:
-[`profile.yaml.example`](examples/.chezmoidata/profile.yaml.example),
+The local editor preference, account definitions, Ollama endpoint, and
+filesystem paths are stored in data files under `home/.chezmoidata/`. The
+local-data setup helper copies their examples:
+[`99-local.yaml.example`](examples/.chezmoidata/99-local.yaml.example),
 [`host.yaml.example`](examples/.chezmoidata/host.yaml.example) and
 [`path.yaml.example`](examples/.chezmoidata/path.yaml.example).
 
@@ -258,27 +258,32 @@ path:
 `host.ollama` sets the Ollama endpoint, `path.workspace.path` sets the
 destination of the generated `ws` alias, and `path.profiles.path` selects
 where profile state lives. Any path entry with an `alias` creates a `cd` alias.
-Other values can be set per machine in `~/.config/chezmoi/chezmoi.yaml`, for
-example:
+`00-defaults.yaml` provides shared fallback values; machine-specific values
+belong in the ignored `99-local.yaml`. For example:
 
 ```yaml
-data:
-  name: Your Name
-  email: you@example.com
+name: Your Name
+email: you@example.com
+editor: code --wait
+vscode:
+  defaultProfile: Default
 ```
 
-The local `profile.yaml` example sets the editor used by Zsh, Git, and GitHub
-CLI; it defaults to `code --wait`. It also sets `defaultProfile` for plain
-`code`, using VS Code's built-in `Default` profile unless configured otherwise.
+The local data supplies initial values for the global Git identity and the
+editor used by Zsh, Git, and GitHub CLI. The local chezmoi config stores the
+effective global identity and takes precedence on later renders. The data also
+sets `vscode.defaultProfile` for plain `code`, using VS Code's built-in
+`Default` profile unless configured otherwise. Account configurations are
+stored under `accounts` in `99-local.yaml`.
 
 ### Assistant instructions
 
 Copy [`examples/.chezmoidata/ai.yaml.example`](examples/.chezmoidata/ai.yaml.example)
 to the ignored local `home/.chezmoidata/ai.yaml` to customize shared
 instructions. Profile-level instructions can be set with
-`profiles.instructions` or `profiles.<id>.instructions`. The
-`profiles.<id>.ai.instructions` value applies to all AI tools in that profile;
-`profiles.<id>.<tool>.instructions` applies to one tool. By default,
+`accounts.instructions` or `accounts.<id>.instructions`. The
+`accounts.<id>.ai.instructions` value applies to all AI tools in that account;
+`accounts.<id>.<tool>.instructions` applies to one tool. By default,
 instructions append to inherited text. Set `force: true` to replace it.
 
 ### Keep credentials out of configuration
@@ -317,7 +322,7 @@ workflow, test coverage, and other validation targets.
   alias (`gh <alias> auth login`) and check for overriding `GH_TOKEN` or
   `GITHUB_TOKEN` variables. For GitHub CLI, inspect the profile's
   `~/.config/profiles/<id>/gh/` configuration.
-- **Git identity is unexpected:** Check `profiles.<id>.git`, profile-level
+- **Git identity is unexpected:** Check `accounts.<id>.git`, account-level
   `name`/`email`, and global Git configuration. Profile identity overrides do
   not change global Git configuration.
 - **Codex profile setup reports a conflict:** Review existing

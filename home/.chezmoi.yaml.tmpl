@@ -1,6 +1,24 @@
 # Local chezmoi config defaults. Keep secrets out of this file.
+{{ $identityFile := joinPath .chezmoi.sourceDir ".chezmoidata/99-local.yaml" -}}
+{{- $hasIdentityFile := not (not (stat $identityFile)) -}}
+{{- if not $hasIdentityFile }}
+{{-   $identityFile = joinPath .chezmoi.sourceDir ".chezmoidata/00-defaults.yaml" -}}
+{{-   $hasIdentityFile = not (not (stat $identityFile)) -}}
+{{- end -}}
+{{- $identityData := dict -}}
+{{- if $hasIdentityFile -}}
+{{-   $identityData = include $identityFile | fromYaml -}}
+{{- end -}}
+{{- $name := get $identityData "name" | default (get . "name") | default "" -}}
+{{- $email := get $identityData "email" | default (get . "email") | default "" -}}
+{{- if eq $name "" -}}
+{{-   $name = promptStringOnce . "name" "Git name" -}}
+{{- end -}}
+{{- if eq $email "" -}}
+{{-   $email = promptStringOnce . "email" "Git email" -}}
+{{- end -}}
 data:
-  name: {{ promptStringOnce . "name" "Your name" | toYaml }}
-  email: {{ promptStringOnce . "email" "Your email address" | toYaml }}
-  machine: {{ .chezmoi.hostname | toYaml }}
-  os: {{ .chezmoi.os | toYaml }}
+  machine: {{ .chezmoi.hostname | toYaml | trim }}
+  os: {{ .chezmoi.os | toYaml | trim }}
+  email: {{ $email | toYaml | trim }}
+  name: {{ $name | toYaml | trim }}

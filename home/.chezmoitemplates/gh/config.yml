@@ -18,7 +18,7 @@ aliases:
     issues: issue list
     rv: repo view
     runs: run list
-{{ $profiles := (index . "profiles") | default dict }}
+{{ $profiles := (index . "accounts") | default dict }}
 {{ $profilesDir := includeTemplate "path/profiles-dir" . }}
 {{- range $profile, $config := $profiles }}
   {{- $tools := $config }}
