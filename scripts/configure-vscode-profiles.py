@@ -254,21 +254,71 @@ def profile_settings_path(user_data_dir, profile):
 
 
 def configure_profile_settings(user_data_dir, profile, wanted):
-    """Set profile settings to the configured instruction locations."""
+    """Merge managed profile settings without replacing user-owned settings."""
     settings_path = profile_settings_path(user_data_dir, profile)
     if settings_path.is_symlink():
         raise RuntimeError("refusing to replace a symlinked VS Code profile settings file")
 
-    instruction_locations = wanted.get("instructionLocations")
+    managed_settings = wanted.get("settings")
+    if not isinstance(managed_settings, dict):
+        raise RuntimeError("VS Code profile settings must be a JSON object")
+    instruction_locations = managed_settings.get("chat.instructionsFilesLocations")
     if not isinstance(instruction_locations, dict) or any(
         not isinstance(path, str) or not isinstance(enabled, bool)
         for path, enabled in instruction_locations.items()
     ):
         raise RuntimeError("VS Code profile instructionLocations must be a JSON object of boolean values")
-    profile_settings = {"chat.instructionsFilesLocations": instruction_locations}
-    if settings_path.is_file() and settings_path.read_text(encoding="utf-8") == (
-        json.dumps(profile_settings, ensure_ascii=False, indent=4) + "\n"
+    terminal_settings = [
+        key
+        for key in managed_settings
+        if key in {
+            "terminal.integrated.env.linux",
+            "terminal.integrated.env.osx",
+            "terminal.integrated.env.windows",
+        }
+    ]
+    if len(terminal_settings) != 1:
+        raise RuntimeError("VS Code profile settings must contain one platform-specific terminal environment")
+    terminal_setting = terminal_settings[0]
+    terminal_environment = managed_settings[terminal_setting]
+    if not isinstance(terminal_environment, dict) or any(
+        not isinstance(key, str) or value is not None and not isinstance(value, str)
+        for key, value in terminal_environment.items()
     ):
+        raise RuntimeError("VS Code profile terminal environment must map variable names to strings or null")
+
+    terminal_environment = {
+        key: os.path.expanduser(value) if isinstance(value, str) and value.startswith("~/") else value
+        for key, value in terminal_environment.items()
+    }
+    settings_content = None
+    profile_settings = {}
+    if settings_path.is_file():
+        settings_content = settings_path.read_text(encoding="utf-8")
+        try:
+            profile_settings = json.loads(settings_content)
+        except json.JSONDecodeError as error:
+            raise RuntimeError("VS Code profile settings must contain valid JSON") from error
+        if not isinstance(profile_settings, dict):
+            raise RuntimeError("VS Code profile settings must contain a JSON object")
+
+    existing_instruction_locations = profile_settings.get("chat.instructionsFilesLocations", {})
+    if not isinstance(existing_instruction_locations, dict):
+        raise RuntimeError("existing chat.instructionsFilesLocations must be a JSON object")
+    merged_instruction_locations = dict(existing_instruction_locations)
+    merged_instruction_locations.update(instruction_locations)
+
+    existing_terminal_environment = profile_settings.get(terminal_setting, {})
+    if not isinstance(existing_terminal_environment, dict):
+        raise RuntimeError(f"existing {terminal_setting} must be a JSON object")
+    merged_terminal_environment = dict(existing_terminal_environment)
+    merged_terminal_environment.update(terminal_environment)
+
+    managed_settings = dict(managed_settings)
+    managed_settings["chat.instructionsFilesLocations"] = merged_instruction_locations
+    managed_settings[terminal_setting] = merged_terminal_environment
+    profile_settings.update(managed_settings)
+    if settings_content == json.dumps(profile_settings, ensure_ascii=False, indent=4) + "\n":
         return False
 
     write_json_atomically(settings_path, profile_settings, indent=4)

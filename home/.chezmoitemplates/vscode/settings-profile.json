@@ -1,7 +1,63 @@
 {{- $configDir := .configDir -}}
+{{- $profileDirectory := .profileDirectory -}}
+{{- $tools := .tools -}}
+{{- $terminalEnvPlatform := .terminalEnvironmentPlatform -}}
+{{- $gitIdentity := .gitIdentity -}}
+{{- $unset := "null" | fromJson -}}
+{{- $environment := dict
+  "CODEX_HOME" $unset
+  "CLAUDE_CONFIG_DIR" $unset
+  "COPILOT_HOME" $unset
+  "GEMINI_CLI_HOME" $unset
+  "GH_CONFIG_DIR" $unset
+  "GIT_CONFIG_COUNT" $unset
+  "GIT_CONFIG_PARAMETERS" $unset
+  "GH_TOKEN" $unset
+  "GITHUB_TOKEN" $unset
+  "GH_ENTERPRISE_TOKEN" $unset
+  "GITHUB_ENTERPRISE_TOKEN" $unset
+-}}
+{{- range $index := until 4 -}}
+  {{- $_ := set $environment (printf "GIT_CONFIG_KEY_%d" $index) $unset -}}
+  {{- $_ := set $environment (printf "GIT_CONFIG_VALUE_%d" $index) $unset -}}
+{{- end -}}
+{{- range $tool, $variable := dict
+  "codex" "CODEX_HOME"
+  "claude" "CLAUDE_CONFIG_DIR"
+  "copilot" "COPILOT_HOME"
+  "gemini" "GEMINI_CLI_HOME"
+-}}
+  {{- if has $tool $tools -}}
+    {{- $_ := set $environment $variable (printf "%s/%s" $profileDirectory $tool) -}}
+  {{- end -}}
+{{- end -}}
+{{- $gitConfiguration := list -}}
+{{- if has "gh" $tools -}}
+  {{- $_ := set $environment "GH_CONFIG_DIR" (printf "%s/gh" $profileDirectory) -}}
+  {{- $gitConfiguration = append $gitConfiguration (dict "key" "credential.helper" "value" "") -}}
+  {{- $gitConfiguration = append $gitConfiguration (dict "key" "credential.helper" "value" "!gh auth git-credential") -}}
+{{- end -}}
+{{- if has "git" $tools -}}
+  {{- range $key := list "name" "email" -}}
+    {{- $value := index $gitIdentity $key -}}
+    {{- if $value -}}
+      {{- $gitConfiguration = append $gitConfiguration (dict "key" (printf "user.%s" $key) "value" $value) -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- if $gitConfiguration -}}
+  {{- $_ := set $environment "GIT_CONFIG_COUNT" (printf "%d" (len $gitConfiguration)) -}}
+  {{- range $index, $config := $gitConfiguration -}}
+    {{- $_ := set $environment (printf "GIT_CONFIG_KEY_%d" $index) $config.key -}}
+    {{- $_ := set $environment (printf "GIT_CONFIG_VALUE_%d" $index) $config.value -}}
+  {{- end -}}
+{{- end -}}
 {
-	".github/instructions": true,
-	".claude/rules": true,
-	{{ printf "~/%s/copilot" $configDir | toJson }}: true,
-	{{ printf "~/%s/claude" $configDir | toJson }}: true
+	"chat.instructionsFilesLocations": {
+		".github/instructions": true,
+		".claude/rules": true,
+		{{ printf "~/%s/copilot" $configDir | toJson }}: true,
+		{{ printf "~/%s/claude" $configDir | toJson }}: true
+	},
+	{{ printf "terminal.integrated.env.%s" $terminalEnvPlatform | toJson }}: {{ $environment | toJson }}
 }

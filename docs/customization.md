@@ -157,9 +157,9 @@ example:
 | Claude Code        | Uses `CLAUDE_CONFIG_DIR` pointing to the profile's `claude/` directory.                                                                        |
 | GitHub Copilot CLI | Uses `COPILOT_HOME` pointing to the profile's `copilot/` directory.                                                                            |
 | Gemini CLI         | Uses `GEMINI_CLI_HOME` pointing to the profile's `gemini/` directory.                                                                          |
-| GitHub CLI         | Uses `GH_CONFIG_DIR` pointing to the profile's `gh/` directory and clears inherited GitHub token overrides for the launch.                     |
-| Git                | Applies the configured Git identity only to the launched Git command; Git over HTTPS uses the selected profile's GitHub CLI credential helper. |
-| VS Code            | Opens the configured native VS Code profile and sets profile-aware environment for enabled tools.                                              |
+| GitHub CLI         | Uses `GH_CONFIG_DIR` pointing to the profile's `gh/` directory and clears inherited GitHub token overrides for the launch or integrated terminal. |
+| Git                | Applies the configured Git identity to profile commands and integrated terminals; Git over HTTPS uses the selected profile's GitHub CLI credential helper. |
+| VS Code            | Opens the configured native VS Code profile and configures its new integrated terminals for enabled tools.                                     |
 
 `antigravity` is accepted in profile data, but does not have a generated
 `profile-use` launcher.
@@ -172,6 +172,12 @@ the configured alias). Exact names depend on the local profile file.
 Use `profile-use TOOL PROFILE [arguments...]` as the general launcher for
 Codex, Claude Code, Copilot CLI, Gemini CLI, GitHub CLI, Git, and VS Code.
 SSH remotes continue to use the SSH key selected by SSH.
+
+You can also select a profile from VS Code's profile menu. Newly opened
+integrated terminals then use that profile's enabled CLI state, GitHub CLI
+configuration, and Git identity without shell aliases. Terminals already open
+when you switch profiles retain their existing environment; close and reopen
+them to use the newly selected profile.
 
 The `defaultProfile` value in `home/.chezmoidata/profile.yaml` selects the
 profile used by plain `code`. Set it to `Default` for VS Code's built-in

@@ -97,13 +97,12 @@ alias {{ $alias }}='{{ $aliasValue }}'
   {{- end }}
 {{- end }}
 alias c="claude"
-{{- if $profiles }}
 alias dotfiles='profile-use vscode Default "$(dirname "$(chezmoi source-path)")"'
+{{- if $profiles }}
   {{- with (index . "defaultProfile") }}
     {{- $defaultProfile := . }}
     {{- if eq $defaultProfile "Default" }}
 alias code='profile-use vscode Default'
-{{ "\n" -}}
     {{- else }}
       {{- $config := index $profiles $defaultProfile }}
       {{- if not $config }}
@@ -118,6 +117,7 @@ alias code='profile-use vscode Default'
       {{- end }}
 alias code='profile-use vscode {{ $defaultProfile }}'
     {{- end }}
+{{ "\n" -}}
   {{- end }}
   {{- range $profile, $config := $profiles -}}
     {{- $tools := $config -}}
@@ -127,11 +127,12 @@ alias code='profile-use vscode {{ $defaultProfile }}'
     {{- range $tool := $tools -}}
       {{- if eq $tool "vscode" -}}
 alias code-{{ $profile }}='profile-use vscode {{ $profile }}'
+      {{- "\n" -}}
 alias dotfiles-{{ $profile }}='profile-use vscode {{ $profile }} "$(dirname "$(chezmoi source-path)")"'
-{{ "\n" -}}
+      {{- "\n" -}}
       {{- else if not (or (eq $tool "antigravity") (eq $tool "gh") (eq $tool "git")) -}}
 alias {{ $tool }}-{{ $profile }}='profile-use {{ $tool }} {{ $profile }}'
-{{ "\n" -}}
+      {{- "\n" -}}
       {{- end -}}
     {{- end -}}
   {{- end -}}

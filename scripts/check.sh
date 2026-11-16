@@ -51,6 +51,7 @@ fi
 
 PROFILE_TEST_DATA='{"editor":"code --wait","defaultProfile":"Default","path":{"workspace":{"path":"~/Workspace","alias":"ws"},"profiles":{"path":"~/.config/profiles"},"projects":{"path":"~/Projects","alias":"projects"}},"profiles":{"default":{"tools":["codex","vscode"],"name":"Default"},"review":{"tools":["codex","gh","git","vscode"],"alias":"review-account","name":"Review Profile","email":"profile@example.test","git":{"name":"Review User","email":"review@example.test"}},"git_only":{"tools":["git","vscode"],"email":"git-only@example.test"},"vscode_only":{"tools":["vscode"]},"gh-default":{"tools":["gh"],"alias":"fallback-login"},"gh-git-default":{"tools":["gh","git"],"alias":"custom-alias","git":{"name":"Fallback Git","email":"fallback@example.test"}}}}'
 NUMERIC_PROFILE_TEST_DATA='{"editor":"code --wait","path":{"profiles":{"path":"~/.config/profiles"}},"profiles":{"numeric":{"tools":["git","gh"],"alias":123,"name":123}}}'
+MULTI_TOOL_ALIAS_TEST_DATA='{"profiles":{"work":{"tools":["codex","claude","copilot","gemini","vscode"]}}}'
 PROFILE_INSTRUCTION_TEST_DATA='{"path":{"profiles":{"path":"~/.config/profiles"}},"profiles":{"instructions":"All profile base","inherit":{"tools":["codex"]},"empty_profile":{"tools":["codex"],"instructions":""},"empty_tool":{"tools":["codex"],"instructions":"Parent profile base","codex":{"instructions":""}},"specific":{"tools":["codex"],"instructions":"Specific\u0027s base"},"tool":{"tools":["codex"],"instructions":"Profile base","codex":{"force":true,"instructions":"Tool replacement"}}}}'
 PROFILE_FORCE_TEST_DATA='{"path":{"profiles":{"path":"~/.config/profiles"}},"profiles":{"instructions":"Global base","ai_append":{"tools":["codex"],"instructions":"Profile base","ai":{"force":false,"instructions":"AI append"},"codex":{"force":false,"instructions":"Codex append"}},"ai_default":{"tools":["codex"],"ai":{"instructions":"AI default append"}},"ai_force":{"tools":["codex"],"instructions":"Profile base","ai":{"force":true,"instructions":"AI replacement"}},"tool_force_false":{"tools":["codex"],"instructions":"Profile base","codex":{"force":false,"instructions":"Tool append"}},"tool_default":{"tools":["codex"],"instructions":"Tool parent base","codex":{"instructions":"Tool default append"}},"tool_force_true":{"tools":["codex"],"instructions":"Profile base","codex":{"force":true,"instructions":"Tool replacement"}}}}'
 SPECIAL_PATH_TEST_DATA='{"path":{"workspace":{"path":"~/John\u0027s folder/$HOME","alias":"ws"}}}'
@@ -169,7 +170,14 @@ check_profiles() {
   test -L "$tmpdir/empty-profile-home/.config/profiles/empty/codex/AGENTS.md"
   test "$(readlink "$tmpdir/empty-profile-home/.config/profiles/empty/codex/AGENTS.md")" = "$tmpdir/empty-profile-home/.codex/AGENTS.md"
   "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data "$PROFILE_TEST_DATA" cat ~/.config/zsh/aliases.zsh >"$tmpdir/aliases"
+  grep -Fx 'alias c="claude"' "$tmpdir/aliases" >/dev/null
   grep -Fx "alias code='profile-use vscode Default'" "$tmpdir/aliases" >/dev/null
+  "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data "$MULTI_TOOL_ALIAS_TEST_DATA" execute-template --file home/dot_config/zsh/aliases.zsh.tmpl >"$tmpdir/multi-tool-aliases"
+  grep -Fx "alias codex-work='profile-use codex work'" "$tmpdir/multi-tool-aliases" >/dev/null
+  grep -Fx "alias claude-work='profile-use claude work'" "$tmpdir/multi-tool-aliases" >/dev/null
+  grep -Fx "alias copilot-work='profile-use copilot work'" "$tmpdir/multi-tool-aliases" >/dev/null
+  grep -Fx "alias gemini-work='profile-use gemini work'" "$tmpdir/multi-tool-aliases" >/dev/null
+  zsh -fc 'source "$1"; alias -L codex-work' _ "$tmpdir/multi-tool-aliases" | grep -Fx "alias codex-work='profile-use codex work'" >/dev/null
   ! grep -E "alias (git|gh)-review-account=" "$tmpdir/aliases" >/dev/null
   if "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data '{"editor":"code --wait","profiles":{"bad":{"alias":"bad alias","tools":["git"]}}}' cat ~/.config/git/config >"$tmpdir/invalid-profile-alias" 2>&1; then
     printf '%s\n' 'Invalid profile alias was accepted.' >&2
@@ -291,8 +299,8 @@ check_profiles() {
   ! grep -F 'ai-profile-enabled' "$tmpdir/functions" >/dev/null
   ! grep -F 'ai-use() {' "$tmpdir/functions" >/dev/null
   "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data "$PROFILE_TEST_DATA" execute-template --file home/.chezmoiscripts/run_onchange_setup-profiles.sh.tmpl >"$tmpdir/setup-profiles.sh"
-  "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data '{"configDir":".local/profiles/review"}' execute-template --file home/.chezmoitemplates/vscode/settings-profile.json >"$tmpdir/vscode-profile-instructions.json"
-  python3 -c 'import json,sys; locations=json.load(open(sys.argv[1])); assert locations == {".github/instructions":True,".claude/rules":True,"~/.local/profiles/review/copilot":True,"~/.local/profiles/review/claude":True}' "$tmpdir/vscode-profile-instructions.json"
+  "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data '{"configDir":".local/profiles/review","profileDirectory":"~/.config/profiles/review","tools":["codex","gh","git"],"terminalEnvironmentPlatform":"linux","gitIdentity":{"name":"Review User","email":"review@example.test"}}' execute-template --file home/.chezmoitemplates/vscode/settings-profile.json >"$tmpdir/vscode-profile-settings.json"
+  python3 -c 'import json,sys; settings=json.load(open(sys.argv[1])); assert settings["chat.instructionsFilesLocations"] == {".github/instructions":True,".claude/rules":True,"~/.local/profiles/review/copilot":True,"~/.local/profiles/review/claude":True}; env=settings["terminal.integrated.env.linux"]; assert env["CODEX_HOME"] == "~/.config/profiles/review/codex" and env["GH_CONFIG_DIR"] == "~/.config/profiles/review/gh"; assert env["GIT_CONFIG_COUNT"] == "4" and env["GIT_CONFIG_VALUE_2"] == "Review User" and env["GIT_CONFIG_VALUE_3"] == "review@example.test"; assert env["GH_TOKEN"] is None and env["GIT_CONFIG_PARAMETERS"] is None' "$tmpdir/vscode-profile-settings.json"
   profile_setup_checksum=$(python3 -c 'import hashlib,pathlib; print(hashlib.sha256(pathlib.Path("scripts/configure-vscode-profiles.py").read_bytes()).hexdigest())')
   grep -F "# VS Code profile setup checksum: $profile_setup_checksum" "$tmpdir/setup-profiles.sh" >/dev/null
 }
@@ -386,11 +394,60 @@ EOF
   mkdir -p "$tmpdir/vscode-profile-storage/User/globalStorage" "$tmpdir/vscode-profile-storage/User/profiles/existing-review"
   printf '%s\n' '{"sentinel":"preserve","userDataProfiles":[{"name":"Review Profile","location":"existing-review","useDefaultFlags":{"settings":true,"extensions":true}},{"name":"Unmanaged","location":"existing-unmanaged"}]}' >"$tmpdir/vscode-profile-storage/User/globalStorage/storage.json"
   printf '%s\n' '{"editor.formatOnSave":true,"git.autofetch":true,"chat.instructionsFilesLocations":{".github/instructions":true,".claude/rules":true,"~/.copilot/instructions":true,"~/.claude/rules":true}}' >"$tmpdir/vscode-profile-storage/User/settings.json"
-  printf '%s\n' '{"custom.profileSetting":true,"chat.instructionsFilesLocations":{"old/location":true}}' >"$tmpdir/vscode-profile-storage/User/profiles/existing-review/settings.json"
+  printf '%s\n' '{"custom.profileSetting":true,"chat.instructionsFilesLocations":{"old/location":true},"terminal.integrated.env.linux":{"CUSTOM_TERMINAL_VALUE":"retained","CODEX_HOME":"old-profile"}}' >"$tmpdir/vscode-profile-storage/User/profiles/existing-review/settings.json"
   mkdir -p "$tmpdir/vscode-bin"
   printf '%s\n' '#!/bin/sh' 'if [ "$1" = --version ]; then printf "%s\\n" "${CHEZMOI_VSCODE_TEST_VERSION:-1.115.0}"; exit 0; fi' 'printf "%s\\n" "$*" >> "$CHEZMOI_VSCODE_TEST_LOG"' >"$tmpdir/vscode-bin/code"
   chmod +x "$tmpdir/vscode-bin/code"
   HOME="$tmpdir/profile-cleanup-home" CHEZMOI_PROFILE_SETUP_TESTING=1 CHEZMOI_VSCODE_PROFILE_STORAGE_PATH="$tmpdir/vscode-profile-storage/User/globalStorage/storage.json" CHEZMOI_VSCODE_CLI="$tmpdir/vscode-bin/code" CHEZMOI_VSCODE_TEST_LOG="$tmpdir/vscode-install.log" sh "$tmpdir/setup-profiles.sh"
+  python3 - "$tmpdir/vscode-profile-storage/User/profiles/existing-review/settings.json" "$tmpdir/profile-cleanup-home" <<'PY'
+import json
+import os
+import subprocess
+import sys
+
+settings = json.loads(open(sys.argv[1], encoding="utf-8").read())
+profile_home = sys.argv[2]
+terminal_settings = [
+    key
+    for key, value in settings.items()
+    if key.startswith("terminal.integrated.env.")
+    and value.get("CODEX_HOME") == f"{profile_home}/.config/profiles/review/codex"
+]
+assert len(terminal_settings) == 1
+terminal_setting = terminal_settings[0]
+environment = settings[terminal_setting]
+assert environment["CODEX_HOME"] == f"{profile_home}/.config/profiles/review/codex"
+assert environment["GH_CONFIG_DIR"] == f"{profile_home}/.config/profiles/review/gh"
+assert environment["GH_TOKEN"] is None
+assert environment["GITHUB_TOKEN"] is None
+assert environment["GIT_CONFIG_PARAMETERS"] is None
+assert environment["GIT_CONFIG_COUNT"] == "4"
+assert environment["GIT_CONFIG_KEY_0"] == "credential.helper"
+assert environment["GIT_CONFIG_VALUE_0"] == ""
+assert environment["GIT_CONFIG_KEY_1"] == "credential.helper"
+assert environment["GIT_CONFIG_VALUE_1"] == "!gh auth git-credential"
+assert environment["GIT_CONFIG_KEY_2"] == "user.name"
+assert environment["GIT_CONFIG_VALUE_2"] == "Review User"
+assert environment["GIT_CONFIG_KEY_3"] == "user.email"
+assert environment["GIT_CONFIG_VALUE_3"] == "review@example.test"
+process_environment = os.environ.copy()
+for key, value in environment.items():
+    if value is None:
+        process_environment.pop(key, None)
+    else:
+        process_environment[key] = value
+assert subprocess.run(
+    ["git", "config", "user.name"], check=True, capture_output=True, text=True, env=process_environment
+).stdout.strip() == "Review User"
+credential_helpers = subprocess.run(
+    ["git", "config", "--get-all", "credential.helper"],
+    check=True,
+    capture_output=True,
+    text=True,
+    env=process_environment,
+).stdout.splitlines()
+assert credential_helpers[-2:] == ["", "!gh auth git-credential"]
+PY
   test -L "$tmpdir/profile-cleanup-home/.config/profiles/review/gh/config.yml"
   test "$(readlink "$tmpdir/profile-cleanup-home/.config/profiles/review/gh/config.yml")" = "$tmpdir/profile-cleanup-home/.config/gh/config.yml"
   test -L "$tmpdir/profile-cleanup-home/.config/profiles/git_only/gh/config.yml"
@@ -428,12 +485,99 @@ EOF
   grep -Fx -- '--install-extension GitHub.copilot --profile Review Profile' "$tmpdir/vscode-install.log" >/dev/null
   grep -Fx -- '--install-extension GitHub.copilot-chat --profile git_only' "$tmpdir/vscode-install.log" >/dev/null
   grep -Fx -- '--install-extension GitHub.copilot' "$tmpdir/vscode-install.log" >/dev/null
-  printf '%s\n' '[{"id":"review","name":"Review Profile","instructionLocations":{".github/instructions":true,".claude/rules":true,"~/.config/profiles/review/copilot":true,"~/.config/profiles/review/claude":true}},{"id":"new-profile","name":"New Profile","instructionLocations":{".github/instructions":true,".claude/rules":true,"~/.config/profiles/new-profile/copilot":true,"~/.config/profiles/new-profile/claude":true}}]' | CHEZMOI_PROFILE_SETUP_TESTING=1 CHEZMOI_VSCODE_PROFILE_STORAGE_PATH="$tmpdir/vscode-profile-storage/User/globalStorage/storage.json" CHEZMOI_VSCODE_CLI="$tmpdir/vscode-bin/code" CHEZMOI_VSCODE_TEST_VERSION=1.145.0 CHEZMOI_VSCODE_TEST_LOG="$tmpdir/vscode-builtin-install.log" python3 "$CHEZMOI_SOURCE/scripts/configure-vscode-profiles.py"
+  cat <<'EOF' | HOME="$tmpdir/profile-cleanup-home" CHEZMOI_PROFILE_SETUP_TESTING=1 CHEZMOI_VSCODE_PROFILE_STORAGE_PATH="$tmpdir/vscode-profile-storage/User/globalStorage/storage.json" CHEZMOI_VSCODE_CLI="$tmpdir/vscode-bin/code" CHEZMOI_VSCODE_TEST_VERSION=1.145.0 CHEZMOI_VSCODE_TEST_LOG="$tmpdir/vscode-builtin-install.log" python3 "$CHEZMOI_SOURCE/scripts/configure-vscode-profiles.py"
+[
+  {
+    "id": "review",
+    "name": "Review Profile",
+    "settings": {
+      "chat.instructionsFilesLocations": {
+        ".github/instructions": true,
+        ".claude/rules": true,
+        "~/.config/profiles/review/copilot": true,
+        "~/.config/profiles/review/claude": true
+      },
+      "terminal.integrated.env.linux": {
+        "CODEX_HOME": "~/.config/profiles/review/codex",
+        "CLAUDE_CONFIG_DIR": null,
+        "COPILOT_HOME": null,
+        "GEMINI_CLI_HOME": null,
+        "GH_CONFIG_DIR": "~/.config/profiles/review/gh",
+        "GIT_CONFIG_COUNT": "4",
+        "GIT_CONFIG_KEY_0": "credential.helper",
+        "GIT_CONFIG_VALUE_0": "",
+        "GIT_CONFIG_KEY_1": "credential.helper",
+        "GIT_CONFIG_VALUE_1": "!gh auth git-credential",
+        "GIT_CONFIG_KEY_2": "user.name",
+        "GIT_CONFIG_VALUE_2": "Review User",
+        "GIT_CONFIG_KEY_3": "user.email",
+        "GIT_CONFIG_VALUE_3": "review@example.test",
+        "GIT_CONFIG_PARAMETERS": null,
+        "GH_TOKEN": null,
+        "GITHUB_TOKEN": null,
+        "GH_ENTERPRISE_TOKEN": null,
+        "GITHUB_ENTERPRISE_TOKEN": null
+      }
+    }
+  },
+  {
+    "id": "new-profile",
+    "name": "New Profile",
+    "settings": {
+      "chat.instructionsFilesLocations": {
+        ".github/instructions": true,
+        ".claude/rules": true,
+        "~/.config/profiles/new-profile/copilot": true,
+        "~/.config/profiles/new-profile/claude": true
+      },
+      "terminal.integrated.env.windows": {
+        "CODEX_HOME": null,
+        "CLAUDE_CONFIG_DIR": "~/.config/profiles/new-profile/claude",
+        "COPILOT_HOME": "~/.config/profiles/new-profile/copilot",
+        "GEMINI_CLI_HOME": "~/.config/profiles/new-profile/gemini",
+        "GH_CONFIG_DIR": null,
+        "GIT_CONFIG_COUNT": null,
+        "GIT_CONFIG_PARAMETERS": null,
+        "GH_TOKEN": null,
+        "GITHUB_TOKEN": null,
+        "GH_ENTERPRISE_TOKEN": null,
+        "GITHUB_ENTERPRISE_TOKEN": null
+      }
+    }
+  }
+]
+EOF
   test ! -s "$tmpdir/vscode-builtin-install.log"
   python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); profiles=data["userDataProfiles"]; assert data["sentinel"] == "preserve"; assert any(p["name"] == "Unmanaged" for p in profiles); assert any(p["name"] == "git_only" for p in profiles); assert not any(p["name"] == "Default" for p in profiles); expected_shared=("keybindings","tasks","mcp","snippets","prompts","languageModels"); for_profile=lambda p: p["useDefaultFlags"]; review=next(p for p in profiles if p["name"] == "Review Profile"); new=next(p for p in profiles if p["name"] == "New Profile"); assert review["useDefaultFlags"]["settings"] is False and new["useDefaultFlags"]["settings"] is False; assert all(for_profile(p)[key] is True for p in (review,new) for key in expected_shared); assert all(for_profile(p)["extensions"] is False for p in (review,new))' "$tmpdir/vscode-profile-storage/User/globalStorage/storage.json"
-  python3 -c 'import json,sys; settings=json.load(open(sys.argv[1])); assert settings["chat.instructionsFilesLocations"]["~/.config/profiles/new-profile/copilot"] is True' "$tmpdir/vscode-profile-storage/User/profiles/chezmoi-new-profile/settings.json"
-  python3 -c 'import json,sys; settings=json.load(open(sys.argv[1])); assert settings == {"chat.instructionsFilesLocations":{".github/instructions":True,".claude/rules":True,"~/.config/profiles/review/copilot":True,"~/.config/profiles/review/claude":True}}' "$tmpdir/vscode-profile-storage/User/profiles/existing-review/settings.json"
-  python3 -c 'import json,sys; settings=json.load(open(sys.argv[1])); assert settings == {"chat.instructionsFilesLocations":{".github/instructions":True,".claude/rules":True,"~/.config/profiles/new-profile/copilot":True,"~/.config/profiles/new-profile/claude":True}}' "$tmpdir/vscode-profile-storage/User/profiles/chezmoi-new-profile/settings.json"
+  python3 - "$tmpdir/vscode-profile-storage/User/profiles/existing-review/settings.json" <<'PY'
+import json
+import sys
+
+settings = json.loads(open(sys.argv[1], encoding="utf-8").read())
+assert settings["custom.profileSetting"] is True
+assert settings["chat.instructionsFilesLocations"]["old/location"] is True
+assert settings["chat.instructionsFilesLocations"]["~/.config/profiles/review/copilot"] is True
+environment = settings["terminal.integrated.env.linux"]
+assert environment["CUSTOM_TERMINAL_VALUE"] == "retained"
+assert environment["CODEX_HOME"].endswith("/.config/profiles/review/codex")
+assert environment["GH_CONFIG_DIR"].endswith("/.config/profiles/review/gh")
+assert environment["GIT_CONFIG_VALUE_2"] == "Review User"
+assert environment["GIT_CONFIG_VALUE_3"] == "review@example.test"
+PY
+  python3 - "$tmpdir/vscode-profile-storage/User/profiles/chezmoi-new-profile/settings.json" <<'PY'
+import json
+import sys
+
+settings = json.loads(open(sys.argv[1], encoding="utf-8").read())
+assert settings["chat.instructionsFilesLocations"]["~/.config/profiles/new-profile/copilot"] is True
+environment = settings["terminal.integrated.env.windows"]
+assert environment["CLAUDE_CONFIG_DIR"].endswith("/.config/profiles/new-profile/claude")
+assert environment["COPILOT_HOME"].endswith("/.config/profiles/new-profile/copilot")
+assert environment["GEMINI_CLI_HOME"].endswith("/.config/profiles/new-profile/gemini")
+assert environment["CODEX_HOME"] is None
+assert environment["GH_CONFIG_DIR"] is None
+assert environment["GIT_CONFIG_COUNT"] is None
+PY
   python3 - "$CHEZMOI_SOURCE/scripts/configure-vscode-profiles.py" "$tmpdir" <<'PY'
 import importlib.util
 import os
