@@ -110,12 +110,12 @@ EOF
 }
 
 check_profiles() {
-  mkdir -p "$tmpdir/profile-instruction-source/home/.chezmoiscripts" "$tmpdir/profile-instruction-source/home/.chezmoitemplates/codex" "$tmpdir/profile-instruction-source/home/.chezmoitemplates/vscode" "$tmpdir/profile-instruction-source/home/.chezmoitemplates/path" "$tmpdir/profile-instruction-source/scripts" "$tmpdir/profile-instruction-home/.codex"
+  mkdir -p "$tmpdir/profile-instruction-source/home/.chezmoiscripts" "$tmpdir/profile-instruction-source/home/.chezmoitemplates/codex" "$tmpdir/profile-instruction-source/home/.chezmoitemplates/Code" "$tmpdir/profile-instruction-source/home/.chezmoitemplates/path" "$tmpdir/profile-instruction-source/scripts" "$tmpdir/profile-instruction-home/.codex"
   printf '%s\n' home >"$tmpdir/profile-instruction-source/.chezmoiroot"
   cp scripts/share-codex-config.py "$tmpdir/profile-instruction-source/scripts/"
   cp scripts/configure-vscode-profiles.py "$tmpdir/profile-instruction-source/scripts/"
   cp home/.chezmoitemplates/codex/config.toml "$tmpdir/profile-instruction-source/home/.chezmoitemplates/codex/"
-  cp home/.chezmoitemplates/vscode/settings-profile.json "$tmpdir/profile-instruction-source/home/.chezmoitemplates/vscode/"
+  cp home/.chezmoitemplates/Code/settings-profile.json "$tmpdir/profile-instruction-source/home/.chezmoitemplates/Code/"
   cp home/.chezmoitemplates/path/profiles-dir "$tmpdir/profile-instruction-source/home/.chezmoitemplates/path/"
   printf '%s\n' 'Shared agent baseline' >"$tmpdir/profile-instruction-home/.codex/AGENTS.md"
   cp home/.chezmoiscripts/run_onchange_setup-profiles.sh.tmpl "$tmpdir/profile-instruction-source/home/.chezmoiscripts/setup.tmpl"
@@ -299,7 +299,7 @@ check_profiles() {
   ! grep -F 'ai-profile-enabled' "$tmpdir/functions" >/dev/null
   ! grep -F 'ai-use() {' "$tmpdir/functions" >/dev/null
   "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data "$PROFILE_TEST_DATA" execute-template --file home/.chezmoiscripts/run_onchange_setup-profiles.sh.tmpl >"$tmpdir/setup-profiles.sh"
-  "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data '{"configDir":".local/profiles/review","profileDirectory":"~/.config/profiles/review","tools":["codex","gh","git"],"terminalEnvironmentPlatform":"linux","gitIdentity":{"name":"Review User","email":"review@example.test"}}' execute-template --file home/.chezmoitemplates/vscode/settings-profile.json >"$tmpdir/vscode-profile-settings.json"
+  "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data '{"configDir":".local/profiles/review","profileDirectory":"~/.config/profiles/review","tools":["codex","gh","git"],"terminalEnvironmentPlatform":"linux","gitIdentity":{"name":"Review User","email":"review@example.test"}}' execute-template --file home/.chezmoitemplates/Code/settings-profile.json >"$tmpdir/vscode-profile-settings.json"
   python3 -c 'import json,sys; settings=json.load(open(sys.argv[1])); assert settings["chat.instructionsFilesLocations"] == {".github/instructions":True,".claude/rules":True,"~/.local/profiles/review/copilot":True,"~/.local/profiles/review/claude":True}; env=settings["terminal.integrated.env.linux"]; assert env["CODEX_HOME"] == "~/.config/profiles/review/codex" and env["GH_CONFIG_DIR"] == "~/.config/profiles/review/gh"; assert env["GIT_CONFIG_COUNT"] == "4" and env["GIT_CONFIG_VALUE_2"] == "Review User" and env["GIT_CONFIG_VALUE_3"] == "review@example.test"; assert env["GH_TOKEN"] is None and env["GIT_CONFIG_PARAMETERS"] is None' "$tmpdir/vscode-profile-settings.json"
   profile_setup_checksum=$(python3 -c 'import hashlib,pathlib; print(hashlib.sha256(pathlib.Path("scripts/configure-vscode-profiles.py").read_bytes()).hexdigest())')
   grep -F "# VS Code profile setup checksum: $profile_setup_checksum" "$tmpdir/setup-profiles.sh" >/dev/null
@@ -660,7 +660,7 @@ check_vscode() {
   printf '%s\n' '#!/bin/sh' '[ "$#" -eq 2 ] && [ "$1" = --locate-extension ] && [ "$2" = continue.continue ] || exit 1' 'printf "%s\n" "${CHEZMOI_VSCODE_TEST_EXTENSION_PATH:-/mise-test/vscode/extensions/continue.continue}"' >"$tmpdir/bin/code"
   chmod +x "$tmpdir/bin/mise" "$tmpdir/bin/code"
   PATH="$tmpdir/bin:$PATH" "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" execute-template --file 'home/private_Library/private_Application Support/private_Code/User/settings.json.tmpl' >"$tmpdir/vscode-settings.json"
-  python3 -c 'import json,sys; settings=json.load(open(sys.argv[1])); workspace=json.load(open(sys.argv[2])); associations=workspace["files.associations"]; assert "**/.chezmoitemplates/vscode/settings.json" not in settings["files.associations"]; assert associations["**/*.tmpl"] == "go-template"; assert associations["**/.chezmoitemplates/vscode/*"] == "go-template"; assert associations["**/.chezmoitemplates/gh/config.yml"] == "go-template"' "$tmpdir/vscode-settings.json" .vscode/settings.json
+  python3 -c 'import json,sys; settings=json.load(open(sys.argv[1])); workspace=json.load(open(sys.argv[2])); associations=workspace["files.associations"]; assert "**/.chezmoitemplates/Code/settings.json" not in settings["files.associations"]; assert associations["**/*.tmpl"] == "go-template"; assert associations["**/.chezmoitemplates/Code/*"] == "go-template"; assert associations["**/.chezmoitemplates/gh/config.yml"] == "go-template"' "$tmpdir/vscode-settings.json" .vscode/settings.json
   python3 -m json.tool "$tmpdir/vscode-settings.json" >/dev/null
   python3 -c 'import json,sys; settings=json.load(open(sys.argv[1])); keys=set(settings)-{"yaml.schemas","workbench.settings.applyToAllProfiles","chat.instructionsFilesLocations"}; shared=set(settings["workbench.settings.applyToAllProfiles"]); assert keys == shared, "VS Code shared settings must be listed in applyToAllProfiles"; assert "chat.instructionsFilesLocations" not in shared, "VS Code instruction locations must remain profile-specific"; assert settings["todo-tree.ripgrep.ripgrep"] == "/mise-test/ripgrep/rg", "VS Code ripgrep path must come from mise which rg"; assert "file:///mise-test/vscode/extensions/continue.continue/config-yaml-schema.json" in settings["yaml.schemas"], "Continue schema path must come from code --locate-extension"' "$tmpdir/vscode-settings.json"
   for template in 'home/dot_config/Code/User/settings.json.tmpl' 'home/AppData/Roaming/Code/User/settings.json.tmpl'; do
@@ -702,7 +702,7 @@ run_suite() {
       'PASS home/.chezmoiignore.tmpl' \
       'PASS scripts/configure-vscode-profiles.py and VS Code profile setup template' \
       'PASS home/private_dot_gemini/settings.json' \
-      'PASS home/.chezmoitemplates/vscode/settings.json and platform settings templates' \
+      'PASS home/.chezmoitemplates/Code/settings.json and platform settings templates' \
       'PASS .vscode/settings.json workspace settings'
     printf '%s\n' 'Repository checks passed.'
     ;;

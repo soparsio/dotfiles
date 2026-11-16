@@ -37,7 +37,7 @@
         {{- $gitIdentity = dict "name" (printf "%v" $profileName) "email" (printf "%v" $profileEmail) -}}
       {{- end -}}
       {{- $profileDirectory := printf "~/%s/%s" $profilesDir $profile -}}
-      {{- $profileSettings := includeTemplate "vscode/settings-profile.json" (dict
+      {{- $profileSettings := includeTemplate "Code/settings-profile.json" (dict
         "configDir" $configDir
         "profileDirectory" $profileDirectory
         "tools" $tools
