@@ -394,7 +394,20 @@ EOF
   mkdir -p "$tmpdir/vscode-profile-storage/User/globalStorage" "$tmpdir/vscode-profile-storage/User/profiles/existing-review"
   printf '%s\n' '{"sentinel":"preserve","userDataProfiles":[{"name":"Review Profile","location":"existing-review","useDefaultFlags":{"settings":true,"extensions":true}},{"name":"Unmanaged","location":"existing-unmanaged"}]}' >"$tmpdir/vscode-profile-storage/User/globalStorage/storage.json"
   printf '%s\n' '{"editor.formatOnSave":true,"git.autofetch":true,"chat.instructionsFilesLocations":{".github/instructions":true,".claude/rules":true,"~/.copilot/instructions":true,"~/.claude/rules":true}}' >"$tmpdir/vscode-profile-storage/User/settings.json"
-  printf '%s\n' '{"custom.profileSetting":true,"chat.instructionsFilesLocations":{"old/location":true},"terminal.integrated.env.linux":{"CUSTOM_TERMINAL_VALUE":"retained","CODEX_HOME":"old-profile"}}' >"$tmpdir/vscode-profile-storage/User/profiles/existing-review/settings.json"
+  cat >"$tmpdir/vscode-profile-storage/User/profiles/existing-review/settings.json" <<'EOF'
+{
+  // VS Code settings allow comments and trailing commas.
+  "custom.profileSetting": true,
+  "custom.url": "https://example.test/path//value",
+  /* Keep comment markers in strings intact. */
+  "custom.commentMarkers": "/* value */",
+  "chat.instructionsFilesLocations": {"old/location": true,},
+  "terminal.integrated.env.linux": {
+    "CUSTOM_TERMINAL_VALUE": "retained",
+    "CODEX_HOME": "old-profile",
+  },
+}
+EOF
   mkdir -p "$tmpdir/vscode-bin"
   printf '%s\n' '#!/bin/sh' 'if [ "$1" = --version ]; then printf "%s\\n" "${CHEZMOI_VSCODE_TEST_VERSION:-1.115.0}"; exit 0; fi' 'printf "%s\\n" "$*" >> "$CHEZMOI_VSCODE_TEST_LOG"' >"$tmpdir/vscode-bin/code"
   chmod +x "$tmpdir/vscode-bin/code"
@@ -555,6 +568,8 @@ import sys
 
 settings = json.loads(open(sys.argv[1], encoding="utf-8").read())
 assert settings["custom.profileSetting"] is True
+assert settings["custom.url"] == "https://example.test/path//value"
+assert settings["custom.commentMarkers"] == "/* value */"
 assert settings["chat.instructionsFilesLocations"]["old/location"] is True
 assert settings["chat.instructionsFilesLocations"]["~/.config/profiles/review/copilot"] is True
 environment = settings["terminal.integrated.env.linux"]

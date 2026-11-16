@@ -98,7 +98,7 @@ alias {{ $alias }}='{{ $aliasValue }}'
 {{- end }}
 alias c="claude"
 alias dotfiles='profile-use vscode Default "$(dirname "$(chezmoi source-path)")"'
-{{- if $profiles }}
+{{ if $profiles }}
   {{- with (index . "defaultProfile") }}
     {{- $defaultProfile := . }}
     {{- if eq $defaultProfile "Default" }}

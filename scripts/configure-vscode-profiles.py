@@ -253,6 +253,73 @@ def profile_settings_path(user_data_dir, profile):
     return profile_dir / "settings.json"
 
 
+def parse_vscode_settings(content):
+    """Parse VS Code's JSON-with-comments settings format."""
+    without_comments = []
+    index = 0
+    in_string = False
+    while index < len(content):
+        character = content[index]
+        if in_string:
+            without_comments.append(character)
+            if character == "\\" and index + 1 < len(content):
+                index += 1
+                without_comments.append(content[index])
+            elif character == '"':
+                in_string = False
+        elif character == '"':
+            in_string = True
+            without_comments.append(character)
+        elif character == "/" and index + 1 < len(content) and content[index + 1] == "/":
+            index += 2
+            while index < len(content) and content[index] not in "\r\n":
+                index += 1
+            continue
+        elif character == "/" and index + 1 < len(content) and content[index + 1] == "*":
+            index += 2
+            while index + 1 < len(content) and content[index : index + 2] != "*/":
+                if content[index] in "\r\n":
+                    without_comments.append(content[index])
+                else:
+                    without_comments.append(" ")
+                index += 1
+            if index + 1 >= len(content):
+                raise ValueError("unterminated block comment")
+            index += 1
+        else:
+            without_comments.append(character)
+        index += 1
+
+    content_without_comments = "".join(without_comments)
+    without_trailing_commas = []
+    index = 0
+    in_string = False
+    while index < len(content_without_comments):
+        character = content_without_comments[index]
+        if in_string:
+            without_trailing_commas.append(character)
+            if character == "\\" and index + 1 < len(content_without_comments):
+                index += 1
+                without_trailing_commas.append(content_without_comments[index])
+            elif character == '"':
+                in_string = False
+        elif character == '"':
+            in_string = True
+            without_trailing_commas.append(character)
+        elif character == ",":
+            next_value = index + 1
+            while next_value < len(content_without_comments) and content_without_comments[next_value].isspace():
+                next_value += 1
+            if next_value < len(content_without_comments) and content_without_comments[next_value] in "}]":
+                index += 1
+                continue
+            without_trailing_commas.append(character)
+        else:
+            without_trailing_commas.append(character)
+        index += 1
+    return json.loads("".join(without_trailing_commas))
+
+
 def configure_profile_settings(user_data_dir, profile, wanted):
     """Merge managed profile settings without replacing user-owned settings."""
     settings_path = profile_settings_path(user_data_dir, profile)
@@ -296,9 +363,9 @@ def configure_profile_settings(user_data_dir, profile, wanted):
     if settings_path.is_file():
         settings_content = settings_path.read_text(encoding="utf-8")
         try:
-            profile_settings = json.loads(settings_content)
-        except json.JSONDecodeError as error:
-            raise RuntimeError("VS Code profile settings must contain valid JSON") from error
+            profile_settings = parse_vscode_settings(settings_content)
+        except (json.JSONDecodeError, ValueError) as error:
+            raise RuntimeError("VS Code profile settings must contain valid JSONC") from error
         if not isinstance(profile_settings, dict):
             raise RuntimeError("VS Code profile settings must contain a JSON object")
 
