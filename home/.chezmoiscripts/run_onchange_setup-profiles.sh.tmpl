@@ -4,6 +4,12 @@
 {{- $profiles := (index . "profiles") | default dict -}}
 {{- $vscodeProfiles := list -}}
 {{- $codexProfiles := list -}}
+{{- $terminalEnvPlatform := "linux" -}}
+{{- if eq .chezmoi.os "darwin" -}}
+  {{- $terminalEnvPlatform = "osx" -}}
+{{- else if eq .chezmoi.os "windows" -}}
+  {{- $terminalEnvPlatform = "windows" -}}
+{{- end -}}
 {{- range $profile, $config := $profiles -}}
   {{- if ne $profile "instructions" -}}
     {{- $tools := $config -}}
@@ -19,8 +25,30 @@
         {{- $name = index $config "name" | default $profile | printf "%v" -}}
       {{- end -}}
       {{- $configDir := printf "%s/%s" $profilesDir $profile -}}
-      {{- $instructionLocations := includeTemplate "vscode/settings-profile.json" (dict "configDir" $configDir) | fromJson -}}
-      {{- $vscodeProfiles = append $vscodeProfiles (dict "id" $profile "name" $name "instructionLocations" $instructionLocations) -}}
+      {{- $gitIdentity := dict -}}
+      {{- if kindIs "map" $config -}}
+        {{- $profileName := index $config "name" | default "" -}}
+        {{- $profileEmail := index $config "email" | default "" -}}
+        {{- $gitConfig := index $config "git" | default dict -}}
+        {{- if kindIs "map" $gitConfig -}}
+          {{- $profileName = index $gitConfig "name" | default $profileName -}}
+          {{- $profileEmail = index $gitConfig "email" | default $profileEmail -}}
+        {{- end -}}
+        {{- $gitIdentity = dict "name" (printf "%v" $profileName) "email" (printf "%v" $profileEmail) -}}
+      {{- end -}}
+      {{- $profileDirectory := printf "~/%s/%s" $profilesDir $profile -}}
+      {{- $profileSettings := includeTemplate "vscode/settings-profile.json" (dict
+        "configDir" $configDir
+        "profileDirectory" $profileDirectory
+        "tools" $tools
+        "terminalEnvironmentPlatform" $terminalEnvPlatform
+        "gitIdentity" $gitIdentity
+      ) | fromJson -}}
+      {{- $vscodeProfiles = append $vscodeProfiles (dict
+        "id" $profile
+        "name" $name
+        "settings" $profileSettings
+      ) -}}
     {{- end -}}
   {{- end -}}
 {{- end -}}

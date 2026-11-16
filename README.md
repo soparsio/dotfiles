@@ -214,6 +214,9 @@ They are defined in `home/dot_config/zsh/aliases.zsh.tmpl` and
 
 Docker aliases include `dps`, `dcu`, and `dcd`. Profile launchers are generated
 for enabled tools; exact names depend on the machine-local profile file.
+Selecting a VS Code profile in its profile menu also sets the environment for
+enabled tools in newly opened integrated terminals. Reopen terminals after
+switching profiles; existing terminals keep their original environment.
 
 For the full alias and function reference, see the
 [Keybindings Cheat Sheet](./docs/keybindings.md).

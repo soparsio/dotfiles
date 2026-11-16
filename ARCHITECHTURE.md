@@ -167,8 +167,10 @@ native VS Code profile.
 
 The VS Code helper checks that VS Code is closed before changing profile
 storage or settings. It configures selected resources to inherit from Default,
-keeps settings and extensions profile-specific, and uses the installed VS Code
-CLI to handle Copilot availability on older versions.
+keeps settings and extensions profile-specific, and sets enabled tools'
+environment for newly opened integrated terminals. Existing terminals retain
+their environment after a profile switch. The helper uses the installed VS
+Code CLI to handle Copilot availability on older versions.
 
 ## Platform boundaries
 

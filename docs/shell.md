@@ -65,9 +65,16 @@ launchers set the matching state directory (`CODEX_HOME`, `CLAUDE_CONFIG_DIR`,
 clear inherited GitHub token overrides. Git and VS Code commands use
 profile-specific identity and environment settings when configured.
 
+VS Code profile settings also configure newly opened integrated terminals for
+the enabled tools, including GitHub CLI and Git identity. You can switch
+profiles using VS Code's profile menu without launching a shell alias. Close
+and reopen existing terminals after switching; their environment does not
+change retroactively.
+
 VS Code may reuse a running process and preserve the original environment.
-Fully quit VS Code before switching profiles. Profile IDs and local tool
-settings are documented in [Customization & Local Overrides](customization.md).
+Fully quit VS Code before applying changes to profile configuration. Profile
+IDs and local tool settings are documented in
+[Customization & Local Overrides](customization.md).
 
 ## Reload and validate
 
