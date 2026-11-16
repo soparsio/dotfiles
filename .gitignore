@@ -4,3 +4,6 @@
 *.swo
 __pycache__/
 *.py[cod]
+/home/.chezmoidata/*
+!/home/.chezmoidata/00-defaults.yaml
+!/home/.chezmoidata/packages.yaml

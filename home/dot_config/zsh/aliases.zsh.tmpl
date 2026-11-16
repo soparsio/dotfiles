@@ -37,10 +37,11 @@ alias dcd="docker compose down"
 {{- range (list ".." "..." "...." "la" "ll" "ga" "gs" "gd" "gds" "gb" "gco" "gcm" "gl" "gpl" "gp" "dfh" "reload" "dps" "dcu" "dcd" "c") }}
   {{- $_ := set $reservedAliases . true }}
 {{- end }}
-{{- $profiles := (index . "profiles") | default dict }}
+{{- $profiles := (index . "accounts") | default dict }}
+{{- $vscode := (index . "vscode") | default dict }}
 {{- if $profiles }}
   {{- $_ := set $reservedAliases "dotfiles" true }}
-  {{- if index . "defaultProfile" }}
+  {{- if index $vscode "defaultProfile" }}
     {{- $_ := set $reservedAliases "code" true }}
   {{- end }}
   {{- range $profile, $config := $profiles }}
@@ -99,7 +100,7 @@ alias {{ $alias }}='{{ $aliasValue }}'
 alias c="claude"
 alias dotfiles='profile-use vscode Default "$(dirname "$(chezmoi source-path)")"'
 {{ if $profiles }}
-  {{- with (index . "defaultProfile") }}
+  {{- with (index $vscode "defaultProfile") }}
     {{- $defaultProfile := . }}
     {{- if eq $defaultProfile "Default" }}
 alias code='profile-use vscode Default'

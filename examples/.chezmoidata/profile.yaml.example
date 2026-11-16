@@ -1,3 +1,0 @@
-# Host-specific editor and default VS Code profile.
-editor: code --wait
-defaultProfile: Default

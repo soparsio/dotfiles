@@ -1,0 +1,34 @@
+# Copy this file to home/.chezmoidata/99-local.yaml and adjust as needed.
+name: ""
+email: ""
+editor: code --wait
+vscode:
+  defaultProfile: Default
+accounts:
+  personal:
+    name: Your Personal Name
+    email: you@example.com
+    alias: personal
+    tools: [codex, gh, git, vscode]
+    ai:
+      force: false
+      instructions: |
+        For personal projects, explore alternatives before choosing an implementation.
+    codex:
+      force: false
+      instructions: |
+        Keep the personal-project instructions concise and explain meaningful tradeoffs.
+    gh:
+      username: your-personal-github-username
+
+  work:
+    name: Your Work Name
+    email: you@company.example
+    alias: work
+    tools: [codex, gh, vscode]
+    gh:
+      username: your-work-github-username
+    ai:
+      force: true
+      instructions: |
+        For work projects, prefer small changes and do not change public APIs without confirmation.

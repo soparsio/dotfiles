@@ -1,7 +1,7 @@
 #!/bin/sh
 # VS Code profile setup checksum: {{ include "../scripts/configure-vscode-profiles.py" | sha256sum }}
 {{ $profilesDir := includeTemplate "path/profiles-dir" . -}}
-{{- $profiles := (index . "profiles") | default dict -}}
+{{- $profiles := (index . "accounts") | default dict -}}
 {{- $vscodeProfiles := list -}}
 {{- $codexProfiles := list -}}
 {{- $terminalEnvPlatform := "linux" -}}
@@ -54,7 +54,7 @@
 {{- end -}}
 {{- $globalProfileInstructions := index $profiles "instructions" | default "" -}}
 {{- if and $globalProfileInstructions (not (kindIs "string" $globalProfileInstructions)) -}}
-  {{- fail "profiles.instructions must be a string" -}}
+  {{- fail "accounts.instructions must be a string" -}}
 {{- end -}}
 {{- range $profile, $config := $profiles -}}
   {{- if ne $profile "instructions" -}}
@@ -115,7 +115,7 @@ umask 077
 
 profiles_base="$HOME/{{ $profilesDir }}"
 
-# Delete profile directories that are no longer declared in profiles.yaml.
+# Delete profile directories that are no longer declared in accounts.
 remove_unconfigured_profiles() {
   [ -d "$profiles_base" ] || return 0
   for profile_dir in "$profiles_base"/* "$profiles_base"/.[!.]* "$profiles_base"/..?*; do
@@ -182,7 +182,8 @@ link_if_missing() {
   {{- end -}}
 {{ end -}}
 
-profile_instruction_marker='<!-- Managed by chezmoi; edit profiles.yaml instead. -->'
+profile_instruction_marker='<!-- Managed by chezmoi; edit 99-local.yaml instead. -->'
+legacy_profiles_instruction_marker='<!-- Managed by chezmoi; edit profiles.yaml instead. -->'
 legacy_profile_instruction_marker='<!-- Managed by chezmoi; edit profile.yaml instead. -->'
 legacy_toml_profile_instruction_marker='<!-- Managed by chezmoi; edit profiles.toml instead. -->'
 
@@ -190,6 +191,7 @@ is_managed_profile_instruction() {
   [ -f "$1" ] || return 1
   marker=$(sed -n '1p' "$1")
   [ "$marker" = "$profile_instruction_marker" ] \
+    || [ "$marker" = "$legacy_profiles_instruction_marker" ] \
     || [ "$marker" = "$legacy_profile_instruction_marker" ] \
     || [ "$marker" = "$legacy_toml_profile_instruction_marker" ]
 }

@@ -6,15 +6,15 @@ credentials out of the repository.
 
 ## Choose where a value belongs
 
-| Value                                               | Location                                    | Tracked? |
-| --------------------------------------------------- | ------------------------------------------- | -------- |
-| Editor and default VS Code profile                  | `home/.chezmoidata/profile.yaml`            | No       |
-| Host-specific Ollama endpoint                       | `home/.chezmoidata/host.yaml`               | No       |
-| Host-specific workspace and profile paths           | `home/.chezmoidata/path.yaml`               | No       |
-| Global Git identity and host-specific chezmoi data  | `~/.config/chezmoi/chezmoi.yaml`            | No       |
-| Profile identities, tools, and profile instructions | `home/.chezmoidata/profiles.yaml`           | No       |
-| Shared local AI instructions                        | `home/.chezmoidata/ai.yaml`                 | No       |
-| Authentication tokens and private keys              | OS credential manager or local secret store | No       |
+| Value                                               | Location                                     | Tracked? |
+| --------------------------------------------------- | -------------------------------------------- | -------- |
+| Shared defaults                                    | `home/.chezmoidata/00-defaults.yaml`         | Yes      |
+| Initial Git identity, editor, default profile, and accounts | `home/.chezmoidata/99-local.yaml`             | No       |
+| Effective global Git identity and other host-specific data | `~/.config/chezmoi/chezmoi.yaml`             | No       |
+| Host-specific Ollama endpoint                      | `home/.chezmoidata/host.yaml`                | No       |
+| Host-specific workspace and profile paths           | `home/.chezmoidata/path.yaml`                | No       |
+| Shared local AI instructions                       | `home/.chezmoidata/ai.yaml`                  | No       |
+| Authentication tokens and private keys             | OS credential manager or local secret store | No       |
 
 The `.chezmoiroot` file sets `home/` as the chezmoi source root. In the
 examples below, `chezmoi source-path` returns that source root; example-copy
@@ -40,45 +40,37 @@ $repoRoot = Split-Path $sourceRoot -Parent
 
 The helper copies examples into `home/.chezmoidata/` only when the destination
 does not already exist. Edit those local files; rerunning the helper will not
-replace them. The directory's Git ignore rules exclude local data except for
-`.gitignore` and the tracked `packages.yaml`.
+replace them. `00-defaults.yaml` contains shared fallback values; machine-local
+overrides belong in the ignored `99-local.yaml`.
 
 To confirm a local file is ignored without displaying its contents:
 
 ```sh
-git -C "$repo_root" check-ignore -v home/.chezmoidata/profiles.yaml
+git -C "$repo_root" check-ignore -v home/.chezmoidata/99-local.yaml
 ```
 
 ## Set host-specific chezmoi data
 
-Set machine-specific values in `~/.config/chezmoi/chezmoi.yaml` under `data:`.
+Shared fallback values belong in `home/.chezmoidata/00-defaults.yaml`; machine
+overrides belong in `home/.chezmoidata/99-local.yaml`.
 
 ```yaml
-data:
-  name: Your Name
-  email: you@example.com
-```
-
-- `name` and `email` set the global Git identity. The local chezmoi config
-  template prompts for these once during initialization and saves them here.
-
-If you are upgrading from a version that stored `defaultProfile` in the local
-chezmoi config, remove that old `data.defaultProfile` value so the local profile
-data can provide it.
-
-The ignored `home/.chezmoidata/profile.yaml` stores host-specific preferences
-such as the editor and default VS Code profile:
-
-```yaml
+name: Your Name
+email: you@example.com
 editor: code --wait
-defaultProfile: Default
+vscode:
+  defaultProfile: Default
 ```
 
-The starter file is `examples/.chezmoidata/profile.yaml.example` and is copied
-by the local-data setup helper. The editor setting is used by Zsh, Git, and
-GitHub CLI. `defaultProfile` selects the profile used by plain `code`; use
-`Default` for VS Code's built-in profile or a configured profile ID that
-enables `vscode`.
+`name` and `email` seed the global Git identity. The local chezmoi config
+template reads them from `99-local.yaml` (falling back to
+`00-defaults.yaml`) and prompts only when a value is missing. It records them
+under `data` in `~/.config/chezmoi/chezmoi.yaml`. The local source data takes
+precedence over previously generated config values; rerun `chezmoi init` after
+changing the identity so the local config is refreshed. The editor setting is
+used by Zsh, Git, and GitHub CLI.
+`vscode.defaultProfile` selects the profile used by plain `code`; use `Default`
+for VS Code's built-in profile or a configured account ID that enables `vscode`.
 
 The ignored `home/.chezmoidata/path.yaml` stores host-specific filesystem
 locations. The starter file is copied by the example-data helper:
@@ -117,13 +109,11 @@ config, not in tracked source files.
 
 ## Configure profiles and identities
 
-Customize `home/.chezmoidata/profiles.yaml`. Global Git identity is prompted
-once and saved in `~/.config/chezmoi/chezmoi.yaml`; this file holds
-profile-specific identities, tools, and instructions. The example uses
-placeholder names and addresses:
+Configure identities, tools, and instructions under `accounts` in
+`home/.chezmoidata/99-local.yaml`. Account IDs are used as profile IDs:
 
 ```yaml
-profiles:
+accounts:
   personal:
     name: Your Personal Name
     email: you@example.com
@@ -167,7 +157,7 @@ example:
 Generated Zsh launchers use names such as `codex-personal` and
 `code-personal`; Git and GitHub CLI aliases use commands such as
 `git personal status` and `gh personal auth status` (replace `personal` with
-the configured alias). Exact names depend on the local profile file.
+the configured alias). Exact names depend on the local accounts.
 
 Use `profile-use TOOL PROFILE [arguments...]` as the general launcher for
 Codex, Claude Code, Copilot CLI, Gemini CLI, GitHub CLI, Git, and VS Code.
@@ -179,13 +169,13 @@ configuration, and Git identity without shell aliases. Terminals already open
 when you switch profiles retain their existing environment; close and reopen
 them to use the newly selected profile.
 
-The `defaultProfile` value in `home/.chezmoidata/profile.yaml` selects the
-profile used by plain `code`. Set it to `Default` for VS Code's built-in
+The `vscode.defaultProfile` value in `home/.chezmoidata/99-local.yaml` selects
+the profile used by plain `code`. Set it to `Default` for VS Code's built-in
 profile, or to a configured profile ID that enables `vscode`.
 
 ### Git identity resolution
 
-Identity resolution is per field: `profiles.<id>.git.name/email`, then the
+Identity resolution is per field: `accounts.<id>.git.name/email`, then the
 profile-level `name`/`email`, then global Git configuration. These overrides
 apply only to profile commands and do not rewrite global Git settings.
 
@@ -208,11 +198,11 @@ ai:
     Add local, non-secret guidance for AI tools here.
 ```
 
-Profile-specific and tool-specific instructions belong in
-`home/.chezmoidata/profiles.yaml`:
+Profile-specific and tool-specific instructions belong under `accounts` in
+`home/.chezmoidata/99-local.yaml`:
 
 ```yaml
-profiles:
+accounts:
   work:
     tools: [codex, claude]
     ai:

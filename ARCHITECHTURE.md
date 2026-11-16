@@ -139,8 +139,9 @@ software, and profile scripts can update local application state. Always review
 
 ## Profile setup and runtime
 
-The machine-local `home/.chezmoidata/profiles.yaml` describes profile IDs,
-enabled tools, identity overrides, and optional assistant instructions. The
+The machine-local `home/.chezmoidata/99-local.yaml` describes account IDs,
+enabled tools, identity overrides, and optional assistant instructions under
+`accounts`. The
 `run_onchange_setup-profiles.sh.tmpl` script validates profile data while
 rendering and prepares enabled tools under `~/.config/profiles/<id>/`.
 
