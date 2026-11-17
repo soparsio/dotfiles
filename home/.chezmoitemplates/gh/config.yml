@@ -18,19 +18,19 @@ aliases:
     issues: issue list
     rv: repo view
     runs: run list
-{{ $profiles := (index . "accounts") | default dict }}
+{{ $accounts := (index . "accounts") | default dict }}
 {{ $profilesDir := includeTemplate "path/profiles-dir" . }}
-{{- range $profile, $config := $profiles }}
+{{- range $account, $config := $accounts }}
   {{- $tools := $config }}
   {{- if not (kindIs "slice" $config) }}{{ $tools = index $config "tools" }}{{ end }}
   {{- if has "gh" $tools }}
-    {{- $profileAlias := $profile }}
+    {{- $alias := $account }}
     {{- $ghConfig := dict }}
     {{- if kindIs "map" $config }}
-      {{- $profileAlias = printf "%v" (index $config "alias" | default $profile) }}
+      {{- $alias = printf "%v" (index $config "alias" | default $account) }}
       {{- $ghConfig = index $config "gh" | default dict }}
     {{- end }}
-    {{- if not (kindIs "map" $ghConfig) }}{{ fail (printf "gh config for profile %q must be a table" $profile) }}{{ end }}
+    {{- if not (kindIs "map" $ghConfig) }}{{ fail (printf "gh config for profile %q must be a table" $account) }}{{ end }}
     {{- $gitEnabled := has "git" $tools }}
     {{- $gitName := "" }}
     {{- $gitEmail := "" }}
@@ -48,10 +48,10 @@ aliases:
     {{- if $gitEmail }}{{ $gitConfigParameters = append $gitConfigParameters (printf "'user.email=%s'" $gitEmail) }}{{ end }}
     {{- $gitConfigEnv := "" }}
     {{- if $gitConfigParameters }}{{ $gitConfigEnv = printf "GIT_CONFIG_PARAMETERS='%s' " (join " " $gitConfigParameters | replace "'" "'\\''") }}{{ end }}
-    {{- if not (regexMatch "^[a-zA-Z0-9._-]+$" $profileAlias) }}{{ fail (printf "invalid profile alias %q for profile %q" $profileAlias $profile) }}{{ end }}
-    {{- $ghAlias := $profileAlias }}
+    {{- if not (regexMatch "^[a-zA-Z0-9._-]+$" $alias) }}{{ fail (printf "invalid profile alias %q for profile %q" $alias $account) }}{{ end }}
+    {{- $ghAlias := $alias }}
     {{- if regexMatch "^[0-9]+$" $ghAlias }}{{ $ghAlias = printf "%q" $ghAlias }}{{ end }}
-    {{- printf "    %s: %s\n" $ghAlias (printf "!unset GH_TOKEN GITHUB_TOKEN GH_ENTERPRISE_TOKEN GITHUB_ENTERPRISE_TOKEN GIT_CONFIG_PARAMETERS; GH_CONFIG_DIR=\"$HOME/%s/%s/gh\" %sgh \"$@\"" $profilesDir $profile $gitConfigEnv | quote) }}
+    {{- printf "    %s: %s\n" $ghAlias (printf "!unset GH_TOKEN GITHUB_TOKEN GH_ENTERPRISE_TOKEN GITHUB_ENTERPRISE_TOKEN GIT_CONFIG_PARAMETERS; GH_CONFIG_DIR=\"$HOME/%s/%s/gh\" %sgh \"$@\"" $profilesDir $account $gitConfigEnv | quote) }}
   {{- end }}
 {{- end }}
 # The path to a unix socket through which to send HTTP connections. If blank, HTTP traffic will be handled by net/http.DefaultTransport.

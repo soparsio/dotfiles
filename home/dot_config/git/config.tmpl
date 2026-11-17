@@ -4,10 +4,10 @@
     attributesfile = ~/.config/git/attributes
 [init]
     defaultBranch = main
-{{- $profiles := (index . "accounts") | default dict }}
+{{- $accounts := (index . "accounts") | default dict }}
 {{- $profilesDir := includeTemplate "path/profiles-dir" . }}
 {{- $hasAliases := false }}
-{{- range $profile, $config := $profiles }}
+{{- range $account, $config := $accounts }}
   {{- $tools := $config }}
   {{- if not (kindIs "slice" $config) }}
     {{- $tools = index $config "tools" }}
@@ -16,17 +16,17 @@
 {{- end }}
 {{- if $hasAliases }}
 [alias]
-{{- range $profile, $config := $profiles }}
+{{- range $account, $config := $accounts }}
   {{- $tools := $config }}
   {{- if not (kindIs "slice" $config) }}
     {{- $tools = index $config "tools" }}
   {{- end }}
   {{- if has "git" $tools }}
-    {{- $profileAlias := $profile }}
+    {{- $alias := $account }}
     {{- $name := "" }}
     {{- $email := "" }}
     {{- if kindIs "map" $config }}
-      {{- $profileAlias = printf "%v" (index $config "alias" | default $profile) }}
+      {{- $alias = printf "%v" (index $config "alias" | default $account) }}
       {{- $name = printf "%v" (index $config "name" | default "") }}
       {{- $email = printf "%v" (index $config "email" | default "") }}
       {{- $git := index $config "git" | default dict }}
@@ -35,8 +35,8 @@
         {{- $email = printf "%v" (index $git "email" | default $email) }}
       {{- end }}
     {{- end }}
-    {{- if not (regexMatch "^[a-zA-Z0-9._-]+$" $profileAlias) }}
-      {{- fail (printf "invalid profile alias %q for profile %q" $profileAlias $profile) }}
+    {{- if not (regexMatch "^[a-zA-Z0-9._-]+$" $alias) }}
+      {{- fail (printf "invalid profile alias %q for profile %q" $alias $account) }}
     {{- end }}
     {{- $ghEnabled := has "gh" $tools }}
     {{- if $ghEnabled }}
@@ -45,14 +45,14 @@
         {{- $ghConfig = index $config "gh" | default dict }}
       {{- end }}
       {{- if not (kindIs "map" $ghConfig) }}
-        {{- fail (printf "gh config for profile %q must be a table" $profile) }}
+        {{- fail (printf "gh config for profile %q must be a table" $account) }}
       {{- end }}
     {{- end }}
-    {{- $gitAlias := regexReplaceAll "[^a-zA-Z0-9-]" $profileAlias "-" }}
+    {{- $gitAlias := regexReplaceAll "[^a-zA-Z0-9-]" $alias "-" }}
     {{- if not (regexMatch "^[a-zA-Z]" $gitAlias) }}
       {{- $gitAlias = printf "profile-%s" $gitAlias }}
     {{- end }}
-    {{ $gitAlias }} = "!f() { {{ if $ghEnabled }}unset GH_TOKEN GITHUB_TOKEN GH_ENTERPRISE_TOKEN GITHUB_ENTERPRISE_TOKEN GIT_CONFIG_PARAMETERS; GH_CONFIG_DIR=\"$HOME/{{ $profilesDir }}/{{ $profile }}/gh\" {{ end }}git {{ if $name }}-c user.name=\"{{ $name }}\" {{ end }}{{ if $email }}-c user.email=\"{{ $email }}\" {{ end }}{{ if $ghEnabled }}-c credential.helper= -c credential.helper='!gh auth git-credential' {{ end }}\"$@\"; }; f"
+    {{ $gitAlias }} = "!f() { {{ if $ghEnabled }}unset GH_TOKEN GITHUB_TOKEN GH_ENTERPRISE_TOKEN GITHUB_ENTERPRISE_TOKEN GIT_CONFIG_PARAMETERS; GH_CONFIG_DIR=\"$HOME/{{ $profilesDir }}/{{ $account }}/gh\" {{ end }}git {{ if $name }}-c user.name=\"{{ $name }}\" {{ end }}{{ if $email }}-c user.email=\"{{ $email }}\" {{ end }}{{ if $ghEnabled }}-c credential.helper= -c credential.helper='!gh auth git-credential' {{ end }}\"$@\"; }; f"
   {{- end }}
 {{- end }}
 {{- end }}

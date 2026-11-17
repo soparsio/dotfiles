@@ -17,8 +17,11 @@
 {{- if eq $email "" -}}
 {{-   $email = promptStringOnce . "email" "Git email" -}}
 {{- end -}}
+{{- $accounts := get $identityData "accounts" | default (get . "accounts") | default dict -}}
+{{- $hasMultiAccounts := gt (len $accounts) 0 -}}
 data:
   machine: {{ .chezmoi.hostname | toYaml | trim }}
   os: {{ .chezmoi.os | toYaml | trim }}
   email: {{ $email | toYaml | trim }}
   name: {{ $name | toYaml | trim }}
+  hasMultiAccounts: {{ $hasMultiAccounts | toYaml | trim }}
