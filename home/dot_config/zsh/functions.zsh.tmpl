@@ -87,12 +87,12 @@ extract() {
   esac
 }
 
-{{- $profiles := (index . "accounts") | default dict }}
+{{- $accounts := (index . "accounts") | default dict }}
 {{- $profilesDir := includeTemplate "path/profiles-dir" . }}
-{{- if and (kindIs "map" $profiles) (gt (len $profiles) 0) }}
-  {{- range $profile, $config := $profiles }}
-    {{- if not (regexMatch "^[a-zA-Z0-9._-]+$" $profile) }}
-      {{- fail (printf "invalid profile name %q" $profile) }}
+{{- if and (kindIs "map" $accounts) (gt (len $accounts) 0) }}
+  {{- range $account, $config := $accounts }}
+    {{- if not (regexMatch "^[a-zA-Z0-9._-]+$" $account) }}
+      {{- fail (printf "invalid profile name %q" $account) }}
     {{- end }}
 
     {{- $tools := $config }}
@@ -110,20 +110,20 @@ extract() {
         (eq $tool "vscode")
         (eq $tool "antigravity")
       ) }}
-        {{- fail (printf "unsupported profile tool %q in profile %q" $tool $profile) }}
+        {{- fail (printf "unsupported profile tool %q in profile %q" $tool $account) }}
       {{- end }}
     {{- end }}
 
     {{- if not (kindIs "slice" $config) }}
       {{- $gitConfig := index $config "git" | default dict }}
       {{- if not (kindIs "map" $gitConfig) }}
-        {{- fail (printf "git config for profile %q must be a table" $profile) }}
+        {{- fail (printf "git config for profile %q must be a table" $account) }}
       {{- end }}
 
       {{- if has "gh" $tools }}
         {{- $ghConfig := index $config "gh" | default dict }}
         {{- if not (kindIs "map" $ghConfig) }}
-          {{- fail (printf "gh config for profile %q must be a table" $profile) }}
+          {{- fail (printf "gh config for profile %q must be a table" $account) }}
         {{- end }}
       {{- end }}
     {{- end }}
@@ -132,13 +132,13 @@ extract() {
 # Return success when PROFILE includes TOOL in its configured tool list.
 profile-enabled() {
   case "$1:$2" in{{ "\n" -}}
-    {{- range $profile, $config := $profiles -}}
+    {{- range $account, $config := $accounts -}}
       {{- $tools := $config -}}
       {{- if not (kindIs "slice" $config) -}}
         {{- $tools = index $config "tools" -}}
       {{- end -}}
       {{- range $tool := $tools -}}
-        {{- printf "    \"%s:%s\") return 0 ;;\n" $tool $profile -}}
+        {{- printf "    \"%s:%s\") return 0 ;;\n" $tool $account -}}
       {{- end -}}
     {{- end -}}
     *) return 1 ;;
@@ -147,13 +147,13 @@ profile-enabled() {
 
 # Set the GitHub credential helper and optional profile-specific author identity.
 profile-git-config() {
-  local profile="$1" gh_enabled="${2:-1}" git_config_parameters=''
+  local account="$1" gh_enabled="${2:-1}" git_config_parameters=''
   if [[ "$gh_enabled" == 1 ]]; then
     git_config_parameters="'credential.helper=' 'credential.helper=!gh auth git-credential'"
   fi
   unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 GIT_CONFIG_KEY_1 GIT_CONFIG_VALUE_1
-  case "$profile" in{{ "\n" -}}
-    {{- range $profile, $config := $profiles -}}
+  case "$account" in{{ "\n" -}}
+    {{- range $account, $config := $accounts -}}
       {{- $profileData := dict -}}
       {{- $tools := $config -}}
       {{- $gitConfig := dict -}}
@@ -165,7 +165,7 @@ profile-git-config() {
       {{- $gitName := printf "%v" (index $gitConfig "name" | default (index $profileData "name" | default "")) -}}
       {{- $gitEmail := printf "%v" (index $gitConfig "email" | default (index $profileData "email" | default "")) -}}
       {{- if and (has "git" $tools) (or $gitName $gitEmail) -}}
-        {{- printf "    \"%s\")\n" $profile -}}
+        {{- printf "    \"%s\")\n" $account -}}
         {{- if $gitName -}}
           {{- printf "      git_config_parameters=\"${git_config_parameters}${git_config_parameters:+ }'user.name=%s'\"\n" (replace "'" "'\\''" $gitName) -}}
         {{- end -}}
@@ -196,9 +196,9 @@ profile-clear-gh-environment() {
 
 # Use the profile's isolated GitHub CLI configuration.
 profile-use-gh() {
-  local profile="$1" profile_dir="$HOME/{{ $profilesDir }}/$1/gh"
-  if ! profile-enabled gh "$profile"; then
-    print -u2 "profile-use: GitHub CLI is not configured for profile: $profile"
+  local account="$1" profile_dir="$HOME/{{ $profilesDir }}/$1/gh"
+  if ! profile-enabled gh "$account"; then
+    print -u2 "profile-use: GitHub CLI is not configured for profile: $account"
     return 1
   fi
   command mkdir -p -- "$profile_dir"
@@ -209,38 +209,38 @@ profile-use-gh() {
 
 # Start VS Code with its profile-specific environment.
 profile-use-vscode() {
-  local profile="$1" gh_profile_enabled=0 git_profile_enabled=0
-  local vscode_profile="$profile"
+  local account="$1" gh_profile_enabled=0 git_profile_enabled=0
+  local vscode_profile="$account"
   local -a profile_env=()
   shift
 
-  case "$profile" in{{ "\n" -}}
-    {{- range $profile, $config := $profiles -}}
+  case "$account" in{{ "\n" -}}
+    {{- range $account, $config := $accounts -}}
       {{- if not (kindIs "slice" $config) -}}
         {{- with index $config "name" -}}
-          {{- printf "    \"%s\") vscode_profile=%s ;;\n" $profile (. | quote) -}}
+          {{- printf "    \"%s\") vscode_profile=%s ;;\n" $account (. | quote) -}}
         {{- end -}}
       {{- end -}}
     {{- end -}}
     {{- printf "  esac\n" }}
-  case "$profile" in{{ "\n" -}}
-    {{- range $profile, $config := $profiles -}}
+  case "$account" in{{ "\n" -}}
+    {{- range $account, $config := $accounts -}}
       {{- $tools := $config -}}
       {{- if not (kindIs "slice" $config) -}}
         {{- $tools = index $config "tools" -}}
       {{- end -}}
       {{- if has "vscode" $tools -}}
-        {{- printf "    \"%s\")\n" $profile -}}
-        {{- printf "      profile_env+=(\"GH_CONFIG_DIR=$HOME/%s/%s/gh\")\n" $profilesDir $profile -}}
+        {{- printf "    \"%s\")\n" $account -}}
+        {{- printf "      profile_env+=(\"GH_CONFIG_DIR=$HOME/%s/%s/gh\")\n" $profilesDir $account -}}
         {{- range $tool := $tools -}}
           {{- if eq $tool "codex" -}}
-            {{- printf "      profile_env+=(\"CODEX_HOME=$HOME/%s/%s/codex\")\n" $profilesDir $profile -}}
+            {{- printf "      profile_env+=(\"CODEX_HOME=$HOME/%s/%s/codex\")\n" $profilesDir $account -}}
           {{- else if eq $tool "claude" -}}
-            {{- printf "      profile_env+=(\"CLAUDE_CONFIG_DIR=$HOME/%s/%s/claude\")\n" $profilesDir $profile -}}
+            {{- printf "      profile_env+=(\"CLAUDE_CONFIG_DIR=$HOME/%s/%s/claude\")\n" $profilesDir $account -}}
           {{- else if eq $tool "copilot" -}}
-            {{- printf "      profile_env+=(\"COPILOT_HOME=$HOME/%s/%s/copilot\")\n" $profilesDir $profile -}}
+            {{- printf "      profile_env+=(\"COPILOT_HOME=$HOME/%s/%s/copilot\")\n" $profilesDir $account -}}
           {{- else if eq $tool "gemini" -}}
-            {{- printf "      profile_env+=(\"GEMINI_CLI_HOME=$HOME/%s/%s/gemini\")\n" $profilesDir $profile -}}
+            {{- printf "      profile_env+=(\"GEMINI_CLI_HOME=$HOME/%s/%s/gemini\")\n" $profilesDir $account -}}
           {{- else if eq $tool "git" -}}
             {{- printf "      git_profile_enabled=1\n" -}}
           {{- else if eq $tool "gh" -}}
@@ -255,7 +255,7 @@ profile-use-vscode() {
   # VS Code may reuse an existing process and keep its original environment.
   (
     profile-clear-gh-environment
-    profile-git-config "$profile" "$gh_profile_enabled"
+    profile-git-config "$account" "$gh_profile_enabled"
     if [[ "$vscode_profile" == "Default" ]]; then
       profile-clear-environment
     fi
@@ -265,37 +265,37 @@ profile-use-vscode() {
 
 # Run Git with the selected profile's GitHub credentials and author identity.
 profile-use-git() {
-  local profile="$1"
+  local account="$1"
   shift
   (
-    if profile-enabled gh "$profile"; then
-      profile-use-gh "$profile" || return $?
+    if profile-enabled gh "$account"; then
+      profile-use-gh "$account" || return $?
     else
       profile-clear-gh-environment
       unset GH_CONFIG_DIR
     fi
-    profile-git-config "$profile"
+    profile-git-config "$account"
     command git "$@"
   )
 }
 
 # Start a supported CLI with its profile-specific state directory.
 profile-use-cli() {
-  local tool="$1" profile="$2" profile_dir env_name cli
+  local tool="$1" account="$2" profile_dir env_name cli
   shift 2
 
   if [[ "$tool" == gh ]]; then
     (
-      profile-use-gh "$profile" || return $?
-      profile-git-config "$profile" 0
+      profile-use-gh "$account" || return $?
+      profile-git-config "$account" 0
       command gh "$@"
     )
     return $?
   fi
 
-  profile_dir="$HOME/{{ $profilesDir }}/$profile/$tool"
+  profile_dir="$HOME/{{ $profilesDir }}/$account/$tool"
   if [[ ! -d "$profile_dir" ]]; then
-    print -u2 "profile-use: profile not found: $tool/$profile"
+    print -u2 "profile-use: profile not found: $tool/$account"
     return 1
   fi
 
@@ -315,26 +315,26 @@ profile-use() {
     print -u2 'Usage: profile-use TOOL PROFILE [arguments...]'
     return 2
   fi
-  local tool="$1" profile="$2"
+  local tool="$1" account="$2"
   case "$tool" in
     codex|claude|copilot|gemini|gh|git|vscode) ;;
     *) print -u2 'profile-use: TOOL must be codex, claude, copilot, gemini, gh, git, or vscode'; return 2 ;;
   esac
-  if [[ ! "$profile" =~ '^[a-zA-Z0-9._-]+$' || "$profile" == '.' || "$profile" == '..' ]]; then
+  if [[ ! "$account" =~ '^[a-zA-Z0-9._-]+$' || "$account" == '.' || "$account" == '..' ]]; then
     print -u2 'profile-use: profile name may contain only letters, numbers, dot, underscore, and hyphen'
     return 2
   fi
-  if ! profile-enabled "$tool" "$profile"; then
-    if [[ "$tool" != vscode || "$profile" != Default ]]; then
-      print -u2 "profile-use: profile is not configured for $tool: $profile"
+  if ! profile-enabled "$tool" "$account"; then
+    if [[ "$tool" != vscode || "$account" != Default ]]; then
+      print -u2 "profile-use: profile is not configured for $tool: $account"
       return 1
     fi
   fi
   shift 2
   case "$tool" in
-    vscode) profile-use-vscode "$profile" "$@" ;;
-    git) profile-use-git "$profile" "$@" ;;
-    *) profile-use-cli "$tool" "$profile" "$@" ;;
+    vscode) profile-use-vscode "$account" "$@" ;;
+    git) profile-use-git "$account" "$@" ;;
+    *) profile-use-cli "$tool" "$account" "$@" ;;
   esac
 }
 

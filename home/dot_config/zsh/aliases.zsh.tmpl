@@ -37,24 +37,24 @@ alias dcd="docker compose down"
 {{- range (list ".." "..." "...." "la" "ll" "ga" "gs" "gd" "gds" "gb" "gco" "gcm" "gl" "gpl" "gp" "dfh" "reload" "dps" "dcu" "dcd" "c") }}
   {{- $_ := set $reservedAliases . true }}
 {{- end }}
-{{- $profiles := (index . "accounts") | default dict }}
+{{- $accounts := (index . "accounts") | default dict }}
 {{- $vscode := (index . "vscode") | default dict }}
-{{- if $profiles }}
+{{- if $accounts }}
   {{- $_ := set $reservedAliases "dotfiles" true }}
   {{- if index $vscode "defaultProfile" }}
     {{- $_ := set $reservedAliases "code" true }}
   {{- end }}
-  {{- range $profile, $config := $profiles }}
+  {{- range $account, $config := $accounts }}
     {{- $tools := $config }}
     {{- if not (kindIs "slice" $config) }}
       {{- $tools = index $config "tools" }}
     {{- end }}
     {{- range $tool := $tools }}
       {{- if eq $tool "vscode" }}
-        {{- $_ := set $reservedAliases (printf "code-%v" $profile) true }}
-        {{- $_ := set $reservedAliases (printf "dotfiles-%v" $profile) true }}
+        {{- $_ := set $reservedAliases (printf "code-%v" $account) true }}
+        {{- $_ := set $reservedAliases (printf "dotfiles-%v" $account) true }}
       {{- else if not (or (eq $tool "antigravity") (eq $tool "gh") (eq $tool "git")) }}
-        {{- $_ := set $reservedAliases (printf "%v-%v" $tool $profile) true }}
+        {{- $_ := set $reservedAliases (printf "%v-%v" $tool $account) true }}
       {{- end }}
     {{- end }}
   {{- end }}
@@ -99,13 +99,13 @@ alias {{ $alias }}='{{ $aliasValue }}'
 {{- end }}
 alias c="claude"
 alias dotfiles='profile-use vscode Default "$(dirname "$(chezmoi source-path)")"'
-{{ if $profiles }}
+{{ if $accounts }}
   {{- with (index $vscode "defaultProfile") }}
     {{- $defaultProfile := . }}
     {{- if eq $defaultProfile "Default" }}
 alias code='profile-use vscode Default'
     {{- else }}
-      {{- $config := index $profiles $defaultProfile }}
+      {{- $config := index $accounts $defaultProfile }}
       {{- if not $config }}
         {{- fail (printf "default profile %q is not configured" $defaultProfile) }}
       {{- end }}
@@ -120,19 +120,19 @@ alias code='profile-use vscode {{ $defaultProfile }}'
     {{- end }}
 {{ "\n" -}}
   {{- end }}
-  {{- range $profile, $config := $profiles -}}
+  {{- range $account, $config := $accounts -}}
     {{- $tools := $config -}}
     {{- if not (kindIs "slice" $config) -}}
       {{- $tools = index $config "tools" -}}
     {{- end -}}
     {{- range $tool := $tools -}}
       {{- if eq $tool "vscode" -}}
-alias code-{{ $profile }}='profile-use vscode {{ $profile }}'
+alias code-{{ $account }}='profile-use vscode {{ $account }}'
       {{- "\n" -}}
-alias dotfiles-{{ $profile }}='profile-use vscode {{ $profile }} "$(dirname "$(chezmoi source-path)")"'
+alias dotfiles-{{ $account }}='profile-use vscode {{ $account }} "$(dirname "$(chezmoi source-path)")"'
       {{- "\n" -}}
       {{- else if not (or (eq $tool "antigravity") (eq $tool "gh") (eq $tool "git")) -}}
-alias {{ $tool }}-{{ $profile }}='profile-use {{ $tool }} {{ $profile }}'
+alias {{ $tool }}-{{ $account }}='profile-use {{ $tool }} {{ $account }}'
       {{- "\n" -}}
       {{- end -}}
     {{- end -}}
