@@ -105,13 +105,23 @@ email: local-git@example.test
 git:
   gpgsign: false
 gh:
-  gpgsign: true
-  sshKey: ~/.ssh/signing
+  gpgsign: false
+ssh:
+  gh:
+    accounts:
+      - isRoot: false
+        name: Profile Git User
+        email: profile-git@example.test
+        signingKey: ~/.ssh/profile.pub
+      - isRoot: true
+        name: Root Git User
+        email: root-git@example.test
+        signingKey: ~/.ssh/signing.pub
 accounts: {}
 YAML
   "$CHEZMOI" --source "$tmpdir/gitconfig-local-source" --config "$tmpdir/chezmoi.toml" cat ~/.gitconfig >"$tmpdir/gitconfig-local"
-  grep -Fx '    name = "Local Git User"' "$tmpdir/gitconfig-local" >/dev/null
-  grep -Fx '    email = "local-git@example.test"' "$tmpdir/gitconfig-local" >/dev/null
+  grep -Fx '    name = "Root Git User"' "$tmpdir/gitconfig-local" >/dev/null
+  grep -Fx '    email = "root-git@example.test"' "$tmpdir/gitconfig-local" >/dev/null
   grep -Fx '    signingkey = ~/.ssh/signing.pub' "$tmpdir/gitconfig-local" >/dev/null
   cat >"$tmpdir/gitconfig-local-source/home/.chezmoidata/99-local.yaml" <<'YAML'
 name: Local Git User

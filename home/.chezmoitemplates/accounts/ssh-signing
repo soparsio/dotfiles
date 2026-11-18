@@ -1,6 +1,7 @@
 {{- $localData := get . "localData" -}}
 {{- $defaultsData := get . "defaultsData" -}}
 {{- $accounts := get . "accounts" -}}
+{{- $name := get . "name" -}}
 {{- $email := get . "email" -}}
 {{- $runtime := get . "runtime" -}}
 {{- $gitConfig := get $localData "git" | default (get $runtime "git") -}}
@@ -12,7 +13,7 @@
 {{- $signingAccounts := list -}}
 {{- $ghSshDir := "" -}}
 {{- if and $rootGpgSign (ne $email "") (or (hasKey $rootGh "username") (hasKey $rootGh "sshKey") (hasKey $rootGh "signingKey")) -}}
-{{-   $signingAccounts = append $signingAccounts (dict "account" "root" "gh" $rootGh "email" $email "isRoot" true) -}}
+{{-   $signingAccounts = append $signingAccounts (dict "account" "root" "gh" $rootGh "name" $name "email" $email "isRoot" true) -}}
 {{- end -}}
 {{- range $account, $config := $accounts -}}
 {{-   if and (kindIs "map" $config) (hasKey $config "gh") -}}
@@ -39,11 +40,12 @@
 {{-     end -}}
 {{-     if $accountGpgSign -}}
 {{-       $accountEmail := get $config "email" | default "" -}}
+{{-       $accountName := get $config "name" | default "" -}}
 {{-       $gitEmail := get $accountGit "email" | default "" -}}
 {{-       if ne $gitEmail "" -}}
 {{-         $accountEmail = $gitEmail -}}
 {{-       end -}}
-{{-       $signingAccounts = append $signingAccounts (dict "account" $account "gh" $accountGh "email" $accountEmail "isRoot" false) -}}
+{{-       $signingAccounts = append $signingAccounts (dict "account" $account "gh" $accountGh "name" $accountName "email" $accountEmail "isRoot" false) -}}
 {{-     end -}}
 {{-   end -}}
 {{- end -}}
@@ -74,6 +76,7 @@
 {{-     $account := index $candidate "account" -}}
 {{-     $accountGh := index $candidate "gh" -}}
 {{-     $accountEmail := index $candidate "email" -}}
+{{-     $accountName := index $candidate "name" -}}
 {{-     $isRoot := index $candidate "isRoot" -}}
 {{-     $username := get $accountGh "username" | default "" -}}
 {{-     if not (and (kindIs "string" $username) (regexMatch "^[A-Za-z0-9-]+$" $username)) -}}
@@ -96,7 +99,7 @@
 {{-     if eq $signingKey "" -}}
 {{-       $signingKey = printf "%s.pub" $sshKey -}}
 {{-     end -}}
-{{-     $sshGhAccounts = append $sshGhAccounts (dict "username" $username "email" $accountEmail "sshKey" $sshKey "signingKey" $signingKey "isRoot" $isRoot) -}}
+{{-     $sshGhAccounts = append $sshGhAccounts (dict "username" $username "name" $accountName "email" $accountEmail "sshKey" $sshKey "signingKey" $signingKey "isRoot" $isRoot) -}}
 {{-   end -}}
 {{- end -}}
 {{ toJson $sshGhAccounts }}

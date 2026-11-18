@@ -1,6 +1,6 @@
 ---
 name: format-template
-description: Format and identify Go templates, including chezmoi .tmpl files and extensionless fragments under .chezmoitemplates.
+description: Identify and format Go templates using both Go action layout and the rendered file type's formatting rules.
 ---
 
 # Format Go Templates
@@ -21,4 +21,4 @@ Use this skill when formatting Go template source or deciding whether a file sho
 
 ## Formatting convention
 
-Read [the Go template formatting reference](references/go-template-format.md) before formatting. It defines directive alignment, nesting, whitespace trimming, and safe formatting boundaries.
+Read [the Go template formatting reference](references/go-template-format.md) before formatting. It covers directive alignment, rendered file type detection, type-specific formatting, whitespace trimming, and safe formatting boundaries.

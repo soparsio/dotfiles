@@ -5,7 +5,7 @@ Include ~/.orbstack/ssh/config
 Include ~/.config/gh/ssh/config
 
 Host *
-AddKeysToAgent yes
+  AddKeysToAgent yes
 {{- if eq .chezmoi.os "darwin" }}
-	UseKeychain yes
+  UseKeychain yes
 {{- end }}

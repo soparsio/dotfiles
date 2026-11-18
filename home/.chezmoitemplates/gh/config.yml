@@ -12,12 +12,12 @@ prefer_editor_prompt: disabled
 pager:
 # Aliases allow you to create nicknames for gh commands
 aliases:
-    co: pr checkout
-    pv: pr view
-    prs: pr list
-    issues: issue list
-    rv: repo view
-    runs: run list
+  co: pr checkout
+  pv: pr view
+  prs: pr list
+  issues: issue list
+  rv: repo view
+  runs: run list
 {{ $accounts := includeTemplate "accounts/by-id" . | fromJson }}
 {{- $profilesDir := includeTemplate "path/profiles-dir" . -}}
 {{- range $account, $config := $accounts }}
@@ -50,7 +50,7 @@ aliases:
 {{-     if not (regexMatch "^[a-zA-Z0-9._-]+$" $alias) }}{{ fail (printf "invalid profile alias %q for profile %q" $alias $account) }}{{ end }}
 {{-     $ghAlias := $alias }}
 {{-     if regexMatch "^[0-9]+$" $ghAlias }}{{ $ghAlias = printf "%q" $ghAlias }}{{ end }}
-{{-     printf "    %s: %s\n" $ghAlias (printf "!unset GH_TOKEN GITHUB_TOKEN GH_ENTERPRISE_TOKEN GITHUB_ENTERPRISE_TOKEN GIT_CONFIG_PARAMETERS; GH_CONFIG_DIR=\"$HOME/%s/%s/gh\" %sgh \"$@\"" $profilesDir $account $gitConfigEnv | quote) }}
+{{-     printf "  %s: %s\n" $ghAlias (printf "!unset GH_TOKEN GITHUB_TOKEN GH_ENTERPRISE_TOKEN GITHUB_ENTERPRISE_TOKEN GIT_CONFIG_PARAMETERS; GH_CONFIG_DIR=\"$HOME/%s/%s/gh\" %sgh \"$@\"" $profilesDir $account $gitConfigEnv | quote) }}
 {{-   end -}}
 {{- end -}}
 # The path to a unix socket through which to send HTTP connections. If blank, HTTP traffic will be handled by net/http.DefaultTransport.

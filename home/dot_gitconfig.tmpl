@@ -3,29 +3,24 @@
 {{- $totalAccounts := len $accounts -}}
 {{- if $hasRoot }}{{ $totalAccounts = add $totalAccounts 1 }}{{ end -}}
 {{- $hasMultiAccounts := gt $totalAccounts 1 -}}
-{{- $gitConfig := get . "git" | default dict -}}
-{{- if and (hasKey . "git") (not (kindIs "map" $gitConfig)) -}}
-{{-   fail "git config must be a table" -}}
+{{- $sshConfig := get . "ssh" | default dict -}}
+{{- $sshGhConfig := get $sshConfig "gh" | default dict -}}
+{{- $rootSshGhAccount := dict -}}
+{{- range $sshGhAccount := get $sshGhConfig "accounts" | default (list) -}}
+{{-   if get $sshGhAccount "isRoot" -}}
+{{-     $rootSshGhAccount = $sshGhAccount -}}
+{{-   end -}}
 {{- end -}}
-{{- $ghConfig := get . "gh" | default dict -}}
-{{- if and (hasKey . "gh") (not (kindIs "map" $ghConfig)) -}}
-{{-   fail "gh config must be a table" -}}
-{{- end -}}
-{{- $signingConfig := includeTemplate "git/signing" (dict "git" $gitConfig "gh" $ghConfig) | fromJson -}}
-{{- $gpgSign := get $signingConfig "gpgsign" -}}
-{{- $gh := get $signingConfig "gh" -}}
+{{- $rootSigningKey := get $rootSshGhAccount "signingKey" | default "" -}}
 [include]
     path = ~/.config/git/config
 
 [user]
 {{- if $hasRoot }}
-    name = {{ .name | quote }}
-    email = {{ .email | quote }}
-{{-   $ghKey := get $gh "sshKey" | default "" -}}
-{{-   $ghSig := get $gh "signingKey" | default "" -}}
-{{-   if and (eq $ghSig "") (ne $ghKey "") }}{{ $ghSig = printf "%s.pub" $ghKey }}{{ end -}}
-{{-   if and $gpgSign (ne $ghSig "") }}
-    signingkey = {{ $ghSig }}
+    name = {{ get $rootSshGhAccount "name" | default .name | quote }}
+    email = {{ get $rootSshGhAccount "email" | default .email | quote }}
+{{-   if $rootSigningKey }}
+    signingkey = {{ $rootSigningKey }}
 {{-   end }}
 {{- else if $hasMultiAccounts }}
     useConfigOnly = true
