@@ -1,27 +1,39 @@
 # Local chezmoi config defaults. Keep secrets out of this file.
-{{ $identityFile := joinPath .chezmoi.sourceDir ".chezmoidata/99-local.yaml" -}}
-{{- $hasIdentityFile := not (not (stat $identityFile)) -}}
-{{- if not $hasIdentityFile }}
-{{-   $identityFile = joinPath .chezmoi.sourceDir ".chezmoidata/00-defaults.yaml" -}}
-{{-   $hasIdentityFile = not (not (stat $identityFile)) -}}
+{{ $localData := dict -}}
+{{- $localFile := joinPath .chezmoi.sourceDir ".chezmoidata/99-local.yaml" -}}
+{{- if stat $localFile -}}
+{{-   $localData = include $localFile | fromYaml -}}
 {{- end -}}
-{{- $identityData := dict -}}
-{{- if $hasIdentityFile -}}
-{{-   $identityData = include $identityFile | fromYaml -}}
+{{- $defaultsData := dict -}}
+{{- $defaultsFile := joinPath .chezmoi.sourceDir ".chezmoidata/00-defaults.yaml" -}}
+{{- if stat $defaultsFile -}}
+{{-   $defaultsData = include $defaultsFile | fromYaml -}}
 {{- end -}}
-{{- $name := get $identityData "name" | default (get . "name") | default "" -}}
-{{- $email := get $identityData "email" | default (get . "email") | default "" -}}
+{{- $name := get $localData "name" | default (get . "name") | default "" -}}
+{{- $email := get $localData "email" | default (get . "email") | default "" -}}
 {{- if eq $name "" -}}
 {{-   $name = promptStringOnce . "name" "Git name" -}}
 {{- end -}}
 {{- if eq $email "" -}}
 {{-   $email = promptStringOnce . "email" "Git email" -}}
 {{- end -}}
-{{- $accounts := get $identityData "accounts" | default (get . "accounts") | default dict -}}
-{{- $hasMultiAccounts := gt (len $accounts) 0 -}}
+{{- $accountsData := get $localData "accounts" | default (get . "accounts") | default (list) -}}
+{{- $accounts := includeTemplate "accounts/by-id" (dict "accounts" $accountsData) | fromJson -}}
+{{- $totalAccounts := len $accounts -}}
+{{- if ne $email "" -}}
+{{-   $totalAccounts = add $totalAccounts 1 -}}
+{{- end -}}
+{{- $hasMultiAccounts := gt $totalAccounts 1 -}}
+{{- $sshGhAccounts := includeTemplate "accounts/ssh-signing" (dict "localData" $localData "defaultsData" $defaultsData "accounts" $accounts "email" $email "runtime" .) | fromJson -}}
 data:
   machine: {{ .chezmoi.hostname | toYaml | trim }}
   os: {{ .chezmoi.os | toYaml | trim }}
   email: {{ $email | toYaml | trim }}
   name: {{ $name | toYaml | trim }}
   hasMultiAccounts: {{ $hasMultiAccounts | toYaml | trim }}
+{{ if $sshGhAccounts }}
+  ssh:
+    gh:
+      accounts:
+{{ $sshGhAccounts | toYaml | indent 8 }}
+{{ end }}

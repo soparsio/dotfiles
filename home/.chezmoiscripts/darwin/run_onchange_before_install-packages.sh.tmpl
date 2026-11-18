@@ -4,15 +4,15 @@
 set -eu
 
 if brew list --formula --versions mise >/dev/null 2>&1; then
-  brew uninstall mise
+brew uninstall mise
 fi
 
 if ! command -v mise >/dev/null 2>&1; then
-  curl -fsSL '{{ .packages.common.mise.installer }}' | sh
+curl -fsSL '{{ .packages.common.mise.installer }}' | sh
 fi
 
 if ! brew list --cask --versions visual-studio-code >/dev/null 2>&1; then
-  brew install --cask --adopt visual-studio-code
+brew install --cask --adopt visual-studio-code
 fi
 
 brew bundle --file=/dev/stdin <<EOF

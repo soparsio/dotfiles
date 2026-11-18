@@ -1,0 +1,102 @@
+{{- $localData := get . "localData" -}}
+{{- $defaultsData := get . "defaultsData" -}}
+{{- $accounts := get . "accounts" -}}
+{{- $email := get . "email" -}}
+{{- $runtime := get . "runtime" -}}
+{{- $gitConfig := get $localData "git" | default (get $runtime "git") -}}
+{{- $rootGh := get $localData "gh" | default (get $runtime "gh") | default dict -}}
+{{- $signingConfig := includeTemplate "git/signing" (dict "git" $gitConfig "gh" $rootGh) | fromJson -}}
+{{- $rootGpgSign := get $signingConfig "gpgsign" -}}
+{{- $rootGh = get $signingConfig "gh" -}}
+{{- $sshGhAccounts := list -}}
+{{- $signingAccounts := list -}}
+{{- $ghSshDir := "" -}}
+{{- if and $rootGpgSign (ne $email "") (or (hasKey $rootGh "username") (hasKey $rootGh "sshKey") (hasKey $rootGh "signingKey")) -}}
+{{-   $signingAccounts = append $signingAccounts (dict "account" "root" "gh" $rootGh "email" $email "isRoot" true) -}}
+{{- end -}}
+{{- range $account, $config := $accounts -}}
+{{-   if and (kindIs "map" $config) (hasKey $config "gh") -}}
+{{-     $accountGit := get $config "git" | default dict -}}
+{{-     if not (kindIs "map" $accountGit) -}}
+{{-       fail (printf "git config for account %q must be a table" $account) -}}
+{{-     end -}}
+{{-     $accountGh := get $config "gh" | default dict -}}
+{{-     if not (kindIs "map" $accountGh) -}}
+{{-       fail (printf "gh config for account %q must be a table" $account) -}}
+{{-     end -}}
+{{-     $accountGpgSign := $rootGpgSign -}}
+{{-     if hasKey $accountGit "gpgsign" -}}
+{{-       $accountGpgSign = index $accountGit "gpgsign" -}}
+{{-     end -}}
+{{-     if not (kindIs "bool" $accountGpgSign) -}}
+{{-       fail (printf "git.gpgsign for account %q must be a boolean" $account) -}}
+{{-     end -}}
+{{-     if hasKey $accountGh "gpgsign" -}}
+{{-       $accountGpgSign = index $accountGh "gpgsign" -}}
+{{-     end -}}
+{{-     if not (kindIs "bool" $accountGpgSign) -}}
+{{-       fail (printf "gh.gpgsign for account %q must be a boolean" $account) -}}
+{{-     end -}}
+{{-     if $accountGpgSign -}}
+{{-       $accountEmail := get $config "email" | default "" -}}
+{{-       $gitEmail := get $accountGit "email" | default "" -}}
+{{-       if ne $gitEmail "" -}}
+{{-         $accountEmail = $gitEmail -}}
+{{-       end -}}
+{{-       $signingAccounts = append $signingAccounts (dict "account" $account "gh" $accountGh "email" $accountEmail "isRoot" false) -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+{{- if $signingAccounts -}}
+{{-   $runtimeSsh := get $runtime "ssh" | default dict -}}
+{{-   if not (kindIs "map" $runtimeSsh) -}}
+{{-     fail "ssh config must be a table" -}}
+{{-   end -}}
+{{-   $runtimeGhValue := get $runtimeSsh "gh" | default dict -}}
+{{-   $runtimeGhSsh := dict -}}
+{{-   if kindIs "map" $runtimeGhValue -}}
+{{-     $runtimeGhSsh = $runtimeGhValue -}}
+{{-   else if not (kindIs "slice" $runtimeGhValue) -}}
+{{-     fail "ssh.gh config must be a table" -}}
+{{-   end -}}
+{{-   $defaultSsh := get $defaultsData "ssh" | default dict -}}
+{{-   $defaultGhSsh := get $defaultSsh "gh" | default dict -}}
+{{-   $identitySsh := get $localData "ssh" | default dict -}}
+{{-   if not (kindIs "map" $identitySsh) -}}
+{{-     fail "ssh config in local data must be a table" -}}
+{{-   end -}}
+{{-   $identityGhSsh := get $identitySsh "gh" | default dict -}}
+{{-   if not (kindIs "map" $identityGhSsh) -}}
+{{-     fail "ssh.gh config in local data must be a table" -}}
+{{-   end -}}
+{{-   $ghSshDir := get $identityGhSsh "path" | default (get $runtimeGhSsh "path" | default (get $defaultGhSsh "path" | default "")) -}}
+{{-   range $candidate := $signingAccounts -}}
+{{-     $account := index $candidate "account" -}}
+{{-     $accountGh := index $candidate "gh" -}}
+{{-     $accountEmail := index $candidate "email" -}}
+{{-     $isRoot := index $candidate "isRoot" -}}
+{{-     $username := get $accountGh "username" | default "" -}}
+{{-     if not (and (kindIs "string" $username) (regexMatch "^[A-Za-z0-9-]+$" $username)) -}}
+{{-       fail (printf "account %q requires a valid gh.username for SSH signing" $account) -}}
+{{-     end -}}
+{{-     $sshKey := get $accountGh "sshKey" | default "" -}}
+{{-     $signingKey := get $accountGh "signingKey" | default "" -}}
+{{-     if and (ne $sshKey "") (not (kindIs "string" $sshKey)) -}}
+{{-       fail (printf "account %q gh.sshKey must be a string" $account) -}}
+{{-     end -}}
+{{-     if and (ne $signingKey "") (not (kindIs "string" $signingKey)) -}}
+{{-       fail (printf "account %q gh.signingKey must be a string" $account) -}}
+{{-     end -}}
+{{-     if eq $sshKey "" -}}
+{{-       if not (and (kindIs "string" $ghSshDir) (or (eq $ghSshDir "~") (hasPrefix "~/" $ghSshDir) (hasPrefix "/" $ghSshDir))) -}}
+{{-         fail "ssh.gh.path must be ~, a home-relative path starting with ~/, or an absolute path when an account key is missing" -}}
+{{-       end -}}
+{{-       $sshKey = printf "%s/id_ed25519_github_%s" (trimSuffix "/" $ghSshDir) $username -}}
+{{-     end -}}
+{{-     if eq $signingKey "" -}}
+{{-       $signingKey = printf "%s.pub" $sshKey -}}
+{{-     end -}}
+{{-     $sshGhAccounts = append $sshGhAccounts (dict "username" $username "email" $accountEmail "sshKey" $sshKey "signingKey" $signingKey "isRoot" $isRoot) -}}
+{{-   end -}}
+{{- end -}}
+{{ toJson $sshGhAccounts }}

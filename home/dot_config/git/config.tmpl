@@ -1,58 +1,129 @@
+{{- $accounts := includeTemplate "accounts/by-id" . | fromJson -}}
+{{- $hasRoot := ne (get . "email" | default "") "" -}}
+{{- $gitConfig := get . "git" | default dict -}}
+{{- if and (hasKey . "git") (not (kindIs "map" $gitConfig)) -}}
+{{-   fail "git config must be a table" -}}
+{{- end -}}
+{{- $ghConfig := get . "gh" | default dict -}}
+{{- if and (hasKey . "gh") (not (kindIs "map" $ghConfig)) -}}
+{{-   fail "gh config must be a table" -}}
+{{- end -}}
+{{- $signingConfig := includeTemplate "git/signing" (dict "git" $gitConfig "gh" $ghConfig) | fromJson -}}
+{{- $rootGpgSign := get $signingConfig "gpgsign" -}}
+{{- $gitAccounts := list -}}
+{{- $profilesDir := includeTemplate "path/profiles-dir" . -}}
+{{- $gh := get $signingConfig "gh" -}}
+{{- range $account, $config := $accounts -}}
+{{-   $tools := includeTemplate "accounts/tools" (dict "account" $config) | fromJson -}}
+{{-   if has "git" $tools -}}
+{{-     $gitAccounts = append $gitAccounts (dict "id" $account "config" $config "tools" $tools) -}}
+{{-   end -}}
+{{- end -}}
 [core]
     editor = {{ .editor | quote }}
     excludesfile = ~/.config/git/ignore
     attributesfile = ~/.config/git/attributes
+
 [init]
     defaultBranch = main
-{{- $accounts := (index . "accounts") | default dict }}
-{{- $profilesDir := includeTemplate "path/profiles-dir" . }}
-{{- $hasAliases := false }}
-{{- range $account, $config := $accounts }}
-  {{- $tools := $config }}
-  {{- if not (kindIs "slice" $config) }}
-    {{- $tools = index $config "tools" }}
-  {{- end }}
-  {{- if has "git" $tools }}{{ $hasAliases = true }}{{ end }}
-{{- end }}
-{{- if $hasAliases }}
+{{- "\n" -}}
+{{- if $gitAccounts }}
 [alias]
-{{- range $account, $config := $accounts }}
-  {{- $tools := $config }}
-  {{- if not (kindIs "slice" $config) }}
-    {{- $tools = index $config "tools" }}
-  {{- end }}
-  {{- if has "git" $tools }}
-    {{- $alias := $account }}
-    {{- $name := "" }}
-    {{- $email := "" }}
-    {{- if kindIs "map" $config }}
-      {{- $alias = printf "%v" (index $config "alias" | default $account) }}
-      {{- $name = printf "%v" (index $config "name" | default "") }}
-      {{- $email = printf "%v" (index $config "email" | default "") }}
-      {{- $git := index $config "git" | default dict }}
-      {{- if kindIs "map" $git }}
-        {{- $name = printf "%v" (index $git "name" | default $name) }}
-        {{- $email = printf "%v" (index $git "email" | default $email) }}
-      {{- end }}
-    {{- end }}
-    {{- if not (regexMatch "^[a-zA-Z0-9._-]+$" $alias) }}
-      {{- fail (printf "invalid profile alias %q for profile %q" $alias $account) }}
-    {{- end }}
-    {{- $ghEnabled := has "gh" $tools }}
-    {{- if $ghEnabled }}
-      {{- $ghConfig := dict }}
-      {{- if kindIs "map" $config }}
-        {{- $ghConfig = index $config "gh" | default dict }}
-      {{- end }}
-      {{- if not (kindIs "map" $ghConfig) }}
-        {{- fail (printf "gh config for profile %q must be a table" $account) }}
-      {{- end }}
-    {{- end }}
-    {{- $gitAlias := regexReplaceAll "[^a-zA-Z0-9-]" $alias "-" }}
-    {{- if not (regexMatch "^[a-zA-Z]" $gitAlias) }}
-      {{- $gitAlias = printf "profile-%s" $gitAlias }}
-    {{- end }}
-    {{ $gitAlias }} = "!f() { {{ if $ghEnabled }}unset GH_TOKEN GITHUB_TOKEN GH_ENTERPRISE_TOKEN GITHUB_ENTERPRISE_TOKEN GIT_CONFIG_PARAMETERS; GH_CONFIG_DIR=\"$HOME/{{ $profilesDir }}/{{ $account }}/gh\" {{ end }}git {{ if $name }}-c user.name=\"{{ $name }}\" {{ end }}{{ if $email }}-c user.email=\"{{ $email }}\" {{ end }}{{ if $ghEnabled }}-c credential.helper= -c credential.helper='!gh auth git-credential' {{ end }}\"$@\"; }; f"
-  {{- end }}
+{{-   range $gitAccount := $gitAccounts }}
+{{-     $account := get $gitAccount "id" }}
+{{-     $config := get $gitAccount "config" }}
+{{-     $tools := get $gitAccount "tools" }}
+{{-     $alias := $account }}
+{{-     $name := "" }}
+{{-     $email := "" }}
+{{-     $accountGpgSign := $rootGpgSign }}
+{{-     $hasAccountGpgSign := false }}
+{{-     $accountGh := dict }}
+{{-     if kindIs "map" $config }}
+{{-       $alias = printf "%v" (index $config "alias" | default $account) }}
+{{-       $name = printf "%v" (index $config "name" | default "") }}
+{{-       $email = printf "%v" (index $config "email" | default "") }}
+{{-       $git := index $config "git" | default dict }}
+{{-       if and (hasKey $config "git") (not (kindIs "map" $git)) }}
+{{-         fail (printf "git config for profile %q must be a table" $account) }}
+{{-       end }}
+{{-       if kindIs "map" $git }}
+{{-         $name = printf "%v" (index $git "name" | default $name) }}
+{{-         $email = printf "%v" (index $git "email" | default $email) }}
+{{-         if hasKey $git "gpgsign" }}
+{{-           $accountGpgSign = index $git "gpgsign" }}
+{{-           $hasAccountGpgSign = true }}
+{{-         end }}
+{{-       end }}
+{{-       $accountGh = index $config "gh" | default dict }}
+{{-       if and (hasKey $config "gh") (not (kindIs "map" $accountGh)) }}
+{{-         fail (printf "gh config for profile %q must be a table" $account) }}
+{{-       end }}
+{{-       if hasKey $accountGh "gpgsign" }}
+{{-         $accountGpgSign = index $accountGh "gpgsign" }}
+{{-         $hasAccountGpgSign = true }}
+{{-       end }}
+{{-       if and $hasAccountGpgSign (not (kindIs "bool" $accountGpgSign)) }}
+{{-         fail (printf "git.gpgsign for profile %q must be a boolean" $account) }}
+{{-       end }}
+{{-     end }}
+{{-     if not (regexMatch "^[a-zA-Z0-9._-]+$" $alias) }}
+{{-       fail (printf "invalid profile alias %q for profile %q" $alias $account) }}
+{{-     end }}
+{{-     $ghEnabled := has "gh" $tools }}
+{{-     if $ghEnabled }}
+{{-       if not (kindIs "map" $accountGh) }}
+{{-         fail (printf "gh config for profile %q must be a table" $account) }}
+{{-       end }}
+{{-     end }}
+{{-     $accountSigningKey := "" -}}
+{{-     if and $accountGpgSign $ghEnabled -}}
+{{-       $accountSigningKey = get $accountGh "signingKey" | default "" -}}
+{{-       $accountSshKey := get $accountGh "sshKey" | default "" -}}
+{{-       if and (eq $accountSigningKey "") (ne $accountSshKey "") -}}
+{{-         $accountSigningKey = printf "%s.pub" $accountSshKey -}}
+{{-       end -}}
+{{-       if eq $accountSigningKey "" -}}
+{{-         $username := get $accountGh "username" | default "" -}}
+{{-         $sshData := get $ "ssh" | default dict -}}
+{{-         $sshGh := get $sshData "gh" | default dict -}}
+{{-         range $sshAccount := (get $sshGh "accounts" | default (list)) -}}
+{{-           if eq (get $sshAccount "username" | default "") $username -}}
+{{-             $accountSigningKey = get $sshAccount "signingKey" | default "" -}}
+{{-           end -}}
+{{-         end -}}
+{{-       end -}}
+{{-     end -}}
+{{-     $gitAlias := regexReplaceAll "[^a-zA-Z0-9-]" $alias "-" }}
+{{-     if not (regexMatch "^[a-zA-Z]" $gitAlias) }}
+{{-       $gitAlias = printf "profile-%s" $gitAlias }}
+{{-     end }}
+    {{ $gitAlias }} = "!f() { {{ if $ghEnabled }}unset GH_TOKEN GITHUB_TOKEN GH_ENTERPRISE_TOKEN GITHUB_ENTERPRISE_TOKEN GIT_CONFIG_PARAMETERS; GH_CONFIG_DIR=\"$HOME/{{ $profilesDir }}/{{ $account }}/gh\" {{ end }}git {{ if $name }}-c user.name=\"{{ $name }}\" {{ end }}{{ if $email }}-c user.email=\"{{ $email }}\" {{ end }}{{ if and $accountGpgSign $accountSigningKey }}-c user.signingkey=\"{{ $accountSigningKey }}\" {{ end }}{{ if $hasAccountGpgSign }}-c commit.gpgsign={{ $accountGpgSign }} {{ end }}{{ if $ghEnabled }}-c credential.helper= -c credential.helper='!gh auth git-credential' {{ end }}\"$@\"; }; f"
+{{-   end }}
 {{- end }}
+
+{{- $sshData := get . "ssh" | default dict -}}
+{{- $sshDefault := get $sshData "default" | default dict -}}
+{{- $sshGh := get $sshData "gh" | default dict -}}
+{{- $allowedSignersFile := get $sshGh "signer" | default (get $sshDefault "signer" | default "~/.config/gh/ssh/allowed_signer") -}}
+{{ "\n" -}}
+[gpg]
+    format = ssh
+
+[gpg "ssh"]
+    allowedSignersFile = {{ $allowedSignersFile }}
+
+{{- if $hasRoot }}
+{{-   "\n" -}}
+{{-   $ghKey := get $gh "sshKey" | default "" -}}
+{{-   $ghSig := get $gh "signingKey" | default "" -}}
+{{-   if and (eq $ghSig "") (ne $ghKey "") }}{{ $ghSig = printf "%s.pub" $ghKey }}{{ end }}
+[commit]
+    gpgsign = {{ and $rootGpgSign (ne $ghSig "") }}
+
+[tag]
+    gpgsign = {{ and $rootGpgSign (ne $ghSig "") }}
 {{- end }}
+
+[credential "https://github.com"]
+    helper = !gh auth git-credential

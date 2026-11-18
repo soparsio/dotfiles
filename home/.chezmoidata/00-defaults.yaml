@@ -1,8 +1,22 @@
 name: ""
 email: ""
 editor: ""
-gh:
-  username: ""
+git:
+  gpgsign: false
+gh: {}
 vscode:
   defaultProfile: "Default"
-accounts: {}
+ai: {}
+host: {}
+path:
+  aliases: {}
+  profiles: ~/.config/profiles/
+ssh:
+  default:
+    path: ~/.ssh/
+    signer: ~/.ssh/allowed_signer
+  gh:
+    path: ~/.config/gh/ssh/
+    signer: ~/.config/gh/ssh/allowed_signer
+    accounts: []
+accounts: []

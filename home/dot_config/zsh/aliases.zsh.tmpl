@@ -32,109 +32,108 @@ alias dcd="docker compose down"
 
 # Path shortcuts
 {{- $path := index . "path" | default dict }}
+{{- if not (kindIs "map" $path) }}
+{{-   fail "path must be a table" }}
+{{- end }}
+{{- $aliases := index $path "aliases" | default dict }}
+{{- if not (kindIs "map" $aliases) }}
+{{-   fail "path.aliases must be a table" }}
+{{- end }}
 {{- $pathAliases := dict }}
 {{- $reservedAliases := dict }}
 {{- range (list ".." "..." "...." "la" "ll" "ga" "gs" "gd" "gds" "gb" "gco" "gcm" "gl" "gpl" "gp" "dfh" "reload" "dps" "dcu" "dcd" "c") }}
-  {{- $_ := set $reservedAliases . true }}
+{{-   $_ := set $reservedAliases . true }}
 {{- end }}
-{{- $accounts := (index . "accounts") | default dict }}
+{{- $accounts := includeTemplate "accounts/by-id" . | fromJson }}
 {{- $vscode := (index . "vscode") | default dict }}
 {{- if $accounts }}
-  {{- $_ := set $reservedAliases "dotfiles" true }}
-  {{- if index $vscode "defaultProfile" }}
-    {{- $_ := set $reservedAliases "code" true }}
-  {{- end }}
-  {{- range $account, $config := $accounts }}
-    {{- $tools := $config }}
-    {{- if not (kindIs "slice" $config) }}
-      {{- $tools = index $config "tools" }}
-    {{- end }}
-    {{- range $tool := $tools }}
-      {{- if eq $tool "vscode" }}
-        {{- $_ := set $reservedAliases (printf "code-%v" $account) true }}
-        {{- $_ := set $reservedAliases (printf "dotfiles-%v" $account) true }}
-      {{- else if not (or (eq $tool "antigravity") (eq $tool "gh") (eq $tool "git")) }}
-        {{- $_ := set $reservedAliases (printf "%v-%v" $tool $account) true }}
-      {{- end }}
-    {{- end }}
-  {{- end }}
+{{-   $_ := set $reservedAliases "dotfiles" true }}
+{{-   if index $vscode "defaultProfile" }}
+{{-     $_ := set $reservedAliases "code" true }}
+{{-   end }}
+{{-   range $account, $config := $accounts }}
+{{-     $tools := includeTemplate "accounts/tools" (dict "account" $config) | fromJson }}
+{{-     range $tool := $tools }}
+{{-       if eq $tool "vscode" }}
+{{-         $_ := set $reservedAliases (printf "code-%v" $account) true }}
+{{-         $_ := set $reservedAliases (printf "dotfiles-%v" $account) true }}
+{{-       else if not (or (eq $tool "antigravity") (eq $tool "gh") (eq $tool "git")) }}
+{{-         $_ := set $reservedAliases (printf "%v-%v" $tool $account) true }}
+{{-       end }}
+{{-     end }}
+{{-   end }}
 {{- end }}
-{{- range $name, $settings := $path }}
-  {{- if not (kindIs "map" $settings) }}
-    {{- fail (printf "path entry %q must be a table" $name) }}
-  {{- end }}
-  {{- $alias := index $settings "alias" }}
-  {{- if and (hasKey $settings "alias") (not (kindIs "string" $alias)) }}
-    {{- fail (printf "path entry %q alias must be a string" $name) }}
-  {{- end }}
-  {{- if $alias }}
-    {{- if not (regexMatch "^[A-Za-z_][A-Za-z0-9._-]*$" $alias) }}
-      {{- fail (printf "invalid path alias %q for %q" $alias $name) }}
-    {{- end }}
-    {{- if hasKey $reservedAliases $alias }}
-      {{- fail (printf "path alias %q conflicts with another generated alias" $alias) }}
-    {{- end }}
-    {{- if hasKey $pathAliases $alias }}
-      {{- fail (printf "duplicate path alias %q" $alias) }}
-    {{- end }}
-    {{- $_ := set $pathAliases $alias true }}
-    {{- $targetPath := index $settings "path" | default "" }}
-    {{- if not (kindIs "string" $targetPath) }}
-      {{- fail (printf "path entry %q path must be a string" $name) }}
-    {{- end }}
-    {{- if not $targetPath }}
-      {{- fail (printf "path entry %q requires a path when it defines alias %q" $name $alias) }}
-    {{- end }}
-    {{- if not (hasPrefix "~/" $targetPath) }}
-      {{- fail (printf "path entry %q path must be a home-relative path starting with ~/" $name) }}
-    {{- end }}
-    {{- $pathPrefix := trimPrefix "~/" $targetPath }}
-    {{- if regexMatch "[[:cntrl:]]" $pathPrefix }}
-      {{- fail (printf "path entry %q path must not contain control characters" $name) }}
-    {{- end }}
-    {{- $escapedPath := $pathPrefix | replace "\\" "\\\\" | replace "\"" "\\\"" | replace "$" "\\$" | replace "`" "\\`" }}
-    {{- $aliasValue := printf "builtin cd -- \"$HOME\"/\"%s\"" $escapedPath | replace "'" "'\\''" }}
+{{- range $alias, $targetPath := $aliases }}
+{{-   if not (kindIs "string" $alias) }}
+{{-     fail (printf "path alias name %q must be a string" $alias) }}
+{{-   end }}
+{{-   if not (regexMatch "^[A-Za-z_][A-Za-z0-9._-]*$" $alias) }}
+{{-     fail (printf "invalid path alias %q" $alias) }}
+{{-   end }}
+{{-   if hasKey $reservedAliases $alias }}
+{{-     fail (printf "path alias %q conflicts with another generated alias" $alias) }}
+{{-   end }}
+{{-   if hasKey $pathAliases $alias }}
+{{-     fail (printf "duplicate path alias %q" $alias) }}
+{{-   end }}
+{{-   $_ := set $pathAliases $alias true }}
+{{-   if not (kindIs "string" $targetPath) }}
+{{-     fail (printf "path alias %q target must be a string" $alias) }}
+{{-   end }}
+{{-   if not $targetPath }}
+{{-     fail (printf "path alias %q requires a target path" $alias) }}
+{{-   end }}
+{{-   if regexMatch "[[:cntrl:]]" $targetPath }}
+{{-     fail (printf "path alias %q target must not contain control characters" $alias) }}
+{{-   end }}
+{{-   $aliasTarget := "" }}
+{{-   if eq $targetPath "~" }}
+{{-     $aliasTarget = "\"$HOME\"" }}
+{{-   else if hasPrefix "~/" $targetPath }}
+{{-     $pathPrefix := trimPrefix "~/" $targetPath }}
+{{-     $escapedPath := $pathPrefix | replace "\\" "\\\\" | replace "\"" "\\\"" | replace "$" "\\$" | replace "`" "\\`" }}
+{{-     $aliasTarget = printf "\"$HOME\"/\"%s\"" $escapedPath }}
+{{-   else if hasPrefix "/" $targetPath }}
+{{-     $escapedPath := $targetPath | replace "\\" "\\\\" | replace "\"" "\\\"" | replace "$" "\\$" | replace "`" "\\`" }}
+{{-     $aliasTarget = printf "\"%s\"" $escapedPath }}
+{{-   else }}
+{{-     fail (printf "path alias %q target must be ~, a home-relative path starting with ~/, or an absolute path" $alias) }}
+{{-   end }}
+{{-   $aliasValue := printf "builtin cd -- %s" $aliasTarget | replace "'" "'\\''" }}
 alias {{ $alias }}='{{ $aliasValue }}'
-  {{- end }}
 {{- end }}
 alias c="claude"
 alias dotfiles='profile-use vscode Default "$(dirname "$(chezmoi source-path)")"'
 {{ if $accounts }}
-  {{- with (index $vscode "defaultProfile") }}
-    {{- $defaultProfile := . }}
-    {{- if eq $defaultProfile "Default" }}
+{{-   with (index $vscode "defaultProfile") }}
+{{-     $defaultProfile := . }}
+{{-     if eq $defaultProfile "Default" }}
 alias code='profile-use vscode Default'
-    {{- else }}
-      {{- $config := index $accounts $defaultProfile }}
-      {{- if not $config }}
-        {{- fail (printf "default profile %q is not configured" $defaultProfile) }}
-      {{- end }}
-      {{- $tools := $config }}
-      {{- if not (kindIs "slice" $config) }}
-        {{- $tools = index $config "tools" }}
-      {{- end }}
-      {{- if not (has "vscode" $tools) }}
-        {{- fail (printf "default profile %q must enable vscode" $defaultProfile) }}
-      {{- end }}
+{{-     else }}
+{{-       $config := index $accounts $defaultProfile }}
+{{-       if not $config }}
+{{-         fail (printf "default profile %q is not configured" $defaultProfile) }}
+{{-       end }}
+{{-       $tools := includeTemplate "accounts/tools" (dict "account" $config) | fromJson }}
+{{-       if not (has "vscode" $tools) }}
+{{-         fail (printf "default profile %q must enable vscode" $defaultProfile) }}
+{{-       end }}
 alias code='profile-use vscode {{ $defaultProfile }}'
-    {{- end }}
+{{-     end }}
 {{ "\n" -}}
-  {{- end }}
-  {{- range $account, $config := $accounts -}}
-    {{- $tools := $config -}}
-    {{- if not (kindIs "slice" $config) -}}
-      {{- $tools = index $config "tools" -}}
-    {{- end -}}
-    {{- range $tool := $tools -}}
-      {{- if eq $tool "vscode" -}}
+{{-   end }}
+{{-   range $account, $config := $accounts -}}
+{{-     $tools := includeTemplate "accounts/tools" (dict "account" $config) | fromJson -}}
+{{-     range $tool := $tools -}}
+{{-       if eq $tool "vscode" -}}
 alias code-{{ $account }}='profile-use vscode {{ $account }}'
-      {{- "\n" -}}
+{{-         "\n" -}}
 alias dotfiles-{{ $account }}='profile-use vscode {{ $account }} "$(dirname "$(chezmoi source-path)")"'
-      {{- "\n" -}}
-      {{- else if not (or (eq $tool "antigravity") (eq $tool "gh") (eq $tool "git")) -}}
+{{-         "\n" -}}
+{{-       else if not (or (eq $tool "antigravity") (eq $tool "gh") (eq $tool "git")) -}}
 alias {{ $tool }}-{{ $account }}='profile-use {{ $tool }} {{ $account }}'
-      {{- "\n" -}}
-      {{- end -}}
-    {{- end -}}
-  {{- end -}}
+{{-         "\n" -}}
+{{-       end -}}
+{{-     end -}}
+{{-   end -}}
 {{- end }}

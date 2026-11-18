@@ -1,0 +1,25 @@
+{{- $accounts := get . "accounts" | default dict -}}
+{{- $accountsByID := dict -}}
+{{- if kindIs "map" $accounts -}}
+{{-   $accountsByID = $accounts -}}
+{{- else if kindIs "slice" $accounts -}}
+{{-   range $account := $accounts -}}
+{{-     if not (kindIs "map" $account) -}}
+{{-       fail "each accounts entry must be a table" -}}
+{{-     end -}}
+{{-     $id := get $account "id" | default "" -}}
+{{-     if not (and (kindIs "string" $id) (regexMatch "^[a-zA-Z0-9._-]+$" $id)) -}}
+{{-       fail "each accounts entry requires a valid id" -}}
+{{-     end -}}
+{{-     if eq $id "instructions" -}}
+{{-       fail "account id \"instructions\" is reserved" -}}
+{{-     end -}}
+{{-     if hasKey $accountsByID $id -}}
+{{-       fail (printf "duplicate account id %q" $id) -}}
+{{-     end -}}
+{{-     $_ := set $accountsByID $id (omit $account "id") -}}
+{{-   end -}}
+{{- else -}}
+{{-   fail "accounts must be a list of tables" -}}
+{{- end -}}
+{{ toJson $accountsByID }}

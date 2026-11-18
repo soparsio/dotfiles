@@ -1,0 +1,14 @@
+{{- $ssh := get . "ssh" | default dict -}}
+{{- $sshGh := get $ssh "gh" | default dict -}}
+{{- $ghAccounts := get $sshGh "accounts" | default (list) -}}
+{{- range $ghAccount := $ghAccounts -}}
+{{-   $email := get $ghAccount "email" | default "" -}}
+{{-   $sigKey := get $ghAccount "signingKey" | default "" -}}
+{{-   if and (ne $email "") (ne $sigKey "") -}}
+{{-     $pubPath := replace "~" $.chezmoi.homeDir $sigKey -}}
+{{-     if stat $pubPath -}}
+			{{ $email }} {{ include $pubPath | trim }}
+{{-       "\n" -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}

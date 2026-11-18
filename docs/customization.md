@@ -12,7 +12,7 @@ credentials out of the repository.
 | Initial Git identity, editor, default profile, and accounts | `home/.chezmoidata/99-local.yaml`             | No       |
 | Effective global Git identity and other host-specific data | `~/.config/chezmoi/chezmoi.yaml`             | No       |
 | Host-specific Ollama endpoint                      | `home/.chezmoidata/host.yaml`                | No       |
-| Host-specific workspace and profile paths           | `home/.chezmoidata/path.yaml`                | No       |
+| Host-specific aliases and profile path              | `home/.chezmoidata/path.yaml`                | No       |
 | Shared local AI instructions                       | `home/.chezmoidata/ai.yaml`                  | No       |
 | Authentication tokens and private keys             | OS credential manager or local secret store | No       |
 
@@ -72,22 +72,24 @@ used by Zsh, Git, and GitHub CLI.
 `vscode.defaultProfile` selects the profile used by plain `code`; use `Default`
 for VS Code's built-in profile or a configured account ID that enables `vscode`.
 
-The ignored `home/.chezmoidata/path.yaml` stores host-specific filesystem
-locations. The starter file is copied by the example-data helper:
+The ignored `home/.chezmoidata/path.yaml` stores host-specific path aliases and
+the profile state directory. The starter file is copied by the example-data
+helper:
 
 ```yaml
 path:
-  workspace:
-    path: ~/Workspace
-    alias: ws
-  profiles:
-    path: ~/.config/profiles
+  aliases:
+    home: "~"
+    root: /
+    ws: ~/Workspace
+  profiles: ~/.config/profiles
 ```
 
-`path.workspace.path` sets the destination of the `ws` shell alias. Any
-home-relative path entry with an `alias` creates a `cd` alias; path entries
-without one do not.
-`path.profiles.path` is the home-relative root for profile state.
+`path.aliases` maps shell alias names to destination paths. Targets may be the
+home directory (`"~"`), home-relative (`~/Workspace`), or absolute (`/`).
+`path.profiles` is the home-relative root for profile state. SSH directories
+and signer paths are configured under `ssh` in `00-defaults.yaml` or ignored
+local data; `ssh.gh.path` provides the default directory for GitHub SSH keys.
 
 The Ollama endpoint belongs in the ignored `home/.chezmoidata/host.yaml` under
 `host.ollama`:
@@ -114,7 +116,7 @@ Configure identities, tools, and instructions under `accounts` in
 
 ```yaml
 accounts:
-  personal:
+  - id: personal
     name: Your Personal Name
     email: you@example.com
     alias: personal
@@ -123,7 +125,8 @@ accounts:
       username: your-github-username
 ```
 
-Profile IDs are stable directory names under `path.profiles.path`. Use letters,
+`accounts` is a list of profile tables. Each table needs a unique `id`, which
+is used as its stable profile directory name under `path.profiles`. Use letters,
 numbers, dots, underscores, or hyphens; keep IDs stable because they name
 profile state directories. The `name` and `email` fields provide Git identity
 fallbacks. `alias` controls the Git and GitHub CLI command aliases and defaults
@@ -136,7 +139,7 @@ separately with `gh <alias> auth login`.
 Profiles may enable `codex`, `claude`, `copilot`, `gemini`, `gh`, `git`,
 `vscode`, and `antigravity`.
 
-Tools with separate CLI state use directories under `path.profiles.path`, for
+Tools with separate CLI state use directories under `path.profiles`, for
 example:
 
 `~/.config/profiles/<profile-id>/`
@@ -203,7 +206,7 @@ Profile-specific and tool-specific instructions belong under `accounts` in
 
 ```yaml
 accounts:
-  work:
+  - id: work
     tools: [codex, claude]
     ai:
       force: false
@@ -230,6 +233,21 @@ files and custom links are preserved by setup.
 Do not put access tokens, passwords, private keys, or authentication files in
 tracked data, examples, templates, or this repository. Do not copy
 `auth.json`, credential caches, or provider state into a profile example.
+
+Set `gh.sshKey` or an account's `gh.sshKey` field in ignored local data to
+configure GitHub SSH identities. Before generating SSH configuration, chezmoi
+creates a missing Ed25519 key at each configured path (absolute paths or `~/`
+paths only) with no passphrase. Existing private keys are preserved. These keys
+remain local; add their public keys to GitHub yourself, and use this automatic
+generation only if an unencrypted private key is acceptable on the machine.
+Commit signing is controlled by `git.gpgsign`, with
+`accounts.<id>.git.gpgsign` controlling account-specific Git aliases.
+`gh.gpgsign` overrides the corresponding Git setting. When effective signing
+is enabled for a GitHub identity, a missing `gh.sshKey` defaults to
+`ssh.gh.path/id_ed25519_github_<username>`; `gh.signingKey` defaults to that
+private key's `.pub` file. The resolved identities are emitted as
+`ssh.gh.accounts`, including each identity's username, email, key paths, and
+`isRoot` flag.
 
 Use the provider's sign-in command and its supported OS credential manager or
 local secret store. For example, authenticate a GitHub CLI profile with

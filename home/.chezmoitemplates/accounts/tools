@@ -1,0 +1,6 @@
+{{- $account := get . "account" -}}
+{{- $tools := $account -}}
+{{- if not (kindIs "slice" $account) -}}
+{{-   $tools = get $account "tools" -}}
+{{- end -}}
+{{ toJson $tools }}

@@ -1,0 +1,81 @@
+#!/bin/sh
+{{ $sshKeyPaths := list -}}
+{{- $ssh := get . "ssh" | default dict -}}
+{{- if not (kindIs "map" $ssh) -}}
+{{-   fail "ssh config must be a table" -}}
+{{- end -}}
+{{- $sshGh := get $ssh "gh" | default dict -}}
+{{- if not (kindIs "map" $sshGh) -}}
+{{-   fail "ssh.gh config must be a table" -}}
+{{- end -}}
+{{- $ghAccounts := get $sshGh "accounts" | default (list) -}}
+{{- if not (kindIs "slice" $ghAccounts) -}}
+{{-   fail "ssh.gh.accounts must be a list" -}}
+{{- end -}}
+{{- range $account := $ghAccounts -}}
+{{-   if not (kindIs "map" $account) -}}
+{{-     fail "each ssh.gh.accounts entry must be a table" -}}
+{{-   end -}}
+{{-   $sshKey := get $account "sshKey" | default "" -}}
+{{-   if not (and (kindIs "string" $sshKey) (ne $sshKey "")) -}}
+{{-     fail "each ssh.gh.accounts entry requires a non-empty sshKey" -}}
+{{-   end -}}
+{{-   $sshKeyPaths = append $sshKeyPaths $sshKey -}}
+{{- end -}}
+{{- $homeDir := .chezmoi.homeDir -}}
+{{- $keyState := list -}}
+{{- range $keyPath := $sshKeyPaths -}}
+{{-   $targetPath := $keyPath -}}
+{{-   if eq $keyPath "~" -}}
+{{-     $targetPath = $homeDir -}}
+{{-   else if hasPrefix "~/" $keyPath -}}
+{{-     $targetPath = joinPath $homeDir (trimPrefix "~/" $keyPath) -}}
+{{-   else if not (hasPrefix "/" $keyPath) -}}
+{{-     fail (printf "SSH key path must be absolute or start with ~/: %s" $keyPath) -}}
+{{-   end -}}
+{{-   $keyState = append $keyState (dict "path" $keyPath "exists" (not (not (stat $targetPath)))) -}}
+{{- end -}}
+# SSH key paths and file state checksum: {{ $keyState | toJson | sha256sum }}
+set -eu
+umask 077
+
+while IFS= read -r key_path; do
+  [ -n "$key_path" ] || continue
+
+  : "${HOME:?HOME must be set to generate SSH keys}"
+
+  case "$key_path" in
+    "~") key_path=$HOME ;;
+    "~/"*) key_path=$HOME/${key_path#\~/} ;;
+    /*) ;;
+    *)
+      printf 'SSH key path must be absolute or start with ~/: %s\n' "$key_path" >&2
+      exit 1
+      ;;
+  esac
+
+  if [ -e "$key_path" ] || [ -L "$key_path" ]; then
+    if [ -f "$key_path" ]; then
+      continue
+    fi
+    printf 'SSH key path exists but is not a regular file: %s\n' "$key_path" >&2
+    exit 1
+  fi
+
+  if [ -e "$key_path.pub" ] || [ -L "$key_path.pub" ]; then
+    printf 'SSH public key exists without its private key: %s.pub\n' "$key_path" >&2
+    exit 1
+  fi
+
+  if ! command -v ssh-keygen >/dev/null 2>&1; then
+    printf '%s\n' 'ssh-keygen is required to generate configured SSH keys.' >&2
+    exit 127
+  fi
+
+  mkdir -p "$(dirname "$key_path")"
+  ssh-keygen -q -t ed25519 -N "" -f "$key_path"
+done <<'CHEZMOI_SSH_KEY_PATHS'
+{{ range $keyPath := $sshKeyPaths }}
+{{ $keyPath }}
+{{ end -}}
+CHEZMOI_SSH_KEY_PATHS
