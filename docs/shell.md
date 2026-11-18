@@ -51,7 +51,7 @@ The host-specific Ollama endpoint is `host.ollama` in the ignored
 | `croot`       | `croot`                              | Changes to the root of the current Git repository; reports an error outside a repository. |
 | `extract`     | `extract ARCHIVE`                    | Extracts supported tar, zip, gzip, bzip2, and xz files into the current directory.        |
 | `ws`          | `ws`                                 | Changes to the configured workspace directory.                                            |
-| `profile-use` | `profile-use TOOL PROFILE [ARGS...]` | Starts a supported CLI or VS Code profile with its configured environment.                |
+| `use`          | `use TOOL PROFILE [ARGS...]`          | Starts a supported CLI or VS Code profile with its configured environment.                |
 
 `mkcd`, `up`, `croot`, and `extract` validate their arguments and report usage
 errors. `extract` uses the system utility's default overwrite behavior; check

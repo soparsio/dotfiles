@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := check
 .PHONY: help check check-repository check-bootstrap check-profiles check-platforms \
-	check-profile-state check-vscode check-shell-templates lint-shell-template \
+	check-profile-state check-vscode check-templates lint-template \
 	check-assistant-configs
 
 ROOT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
@@ -32,13 +32,13 @@ help:
 	  '  make check-platforms             Check platform-specific templates and packages' \
 	  '  make check-profile-state         Check profile setup behavior' \
 	  '  make check-vscode                Check VS Code profile and settings behavior' \
-	  '  make check-shell-templates       Lint every shell template' \
-	  '  make lint-shell-template         Lint all shell templates' \
-	  '  make lint-shell-template TEMPLATE_PATH=path [FIX=1]' \
-	  '                                   Lint one file or directory; FIX=1 normalizes source whitespace' \
+	  '  make check-templates             Check whitespace in Go templates' \
+	  '  make lint-template               Check all Go templates' \
+	  '  make lint-template TEMPLATE_PATH=path [FIX=1]' \
+	  '                                   Check one file or directory; FIX=1 normalizes whitespace' \
 	  '  make check-assistant-configs     Validate assistant hook and tool JSON'
 
-check: check-repository check-shell-templates check-assistant-configs
+check: check-repository check-templates check-assistant-configs
 
 check-repository:
 	@$(SHELL) "$(ROOT_DIR)/scripts/check.sh"
@@ -58,11 +58,11 @@ check-profile-state:
 check-vscode:
 	@$(SHELL) "$(ROOT_DIR)/scripts/check.sh" vscode
 
-check-shell-templates:
-	@TEMPLATE_PATH= $(SHELL) "$(ROOT_DIR)/scripts/lint-shell-template.sh"
+check-templates:
+	@TEMPLATE_PATH= $(SHELL) "$(ROOT_DIR)/scripts/lint-template.sh"
 
-lint-shell-template:
-	@$(SHELL) "$(ROOT_DIR)/scripts/lint-shell-template.sh" $(FIX_FLAG)
+lint-template:
+	@$(SHELL) "$(ROOT_DIR)/scripts/lint-template.sh" $(FIX_FLAG)
 
 check-assistant-configs:
 	@set -eu; \

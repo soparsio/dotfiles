@@ -19,7 +19,7 @@ The common mise inventory includes:
 | Bun                                                    | `latest`                                            |
 | Go                                                     | `latest`                                            |
 | Python                                                 | `3.15.2`                                            |
-| ripgrep, shfmt, Atuin, Starship                        | `latest`                                            |
+| ripgrep, Atuin, Starship                               | `latest`                                            |
 | Codex CLI, Claude Code, Gemini CLI, GitHub Copilot CLI | Latest npm packages, installed through Bun and mise |
 
 Mise is installed with its official installer on macOS and Linux and with

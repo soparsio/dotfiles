@@ -91,7 +91,7 @@ live under `home/`, selected by `.chezmoiroot`.
 │   ├── check.sh                  Isolated configuration and behavior tests
 │   ├── configure-vscode-profiles.py
 │   ├── copy-example-data.*       Local data bootstrap helpers
-│   ├── lint-shell-template.sh    Shell template lint
+│   ├── lint-template.sh          Go template whitespace check
 │   └── share-codex-config.py     Shared Codex setup
 ├── .chezmoiroot                  Selects home/ as source
 ├── install.sh / install.ps1      POSIX and Windows bootstrap entry points

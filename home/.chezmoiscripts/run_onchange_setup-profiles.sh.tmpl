@@ -2,6 +2,9 @@
 # VS Code profile setup checksum: {{ include "../scripts/configure-vscode-profiles.py" | sha256sum }}
 {{ $profilesDir := includeTemplate "path/profiles-dir" . -}}
 {{- $accounts := includeTemplate "accounts/by-id" . | fromJson -}}
+{{- $rootSigningConfig := includeTemplate "git/signing" (dict "git" (get . "git" | default dict) "gh" (get . "gh" | default dict)) | fromJson -}}
+{{- $rootGpgSign := get $rootSigningConfig "gpgsign" -}}
+{{- $sshGh := get (get . "ssh" | default dict) "gh" | default dict -}}
 {{- $vscodeProfiles := list -}}
 {{- $codexAccounts := list -}}
 {{- $terminalEnvPlatform := "linux" -}}
@@ -22,16 +25,63 @@
 {{-         $name = index $config "name" | default $account | printf "%v" -}}
 {{-       end -}}
 {{-       $configDir := printf "%s/%s" $profilesDir $account -}}
-{{-       $gitIdentity := dict -}}
+{{-       $gitIdentity := dict "name" "" "email" "" "signingKey" "" "gpgsign" $rootGpgSign "sshCommand" "" -}}
 {{-       if kindIs "map" $config -}}
 {{-         $profileName := index $config "name" | default "" -}}
 {{-         $profileEmail := index $config "email" | default "" -}}
-{{-         $gitConfig := index $config "git" | default dict -}}
-{{-         if kindIs "map" $gitConfig -}}
-{{-           $profileName = index $gitConfig "name" | default $profileName -}}
-{{-           $profileEmail = index $gitConfig "email" | default $profileEmail -}}
+{{-         $profileGitConfig := get $config "git" | default dict -}}
+{{-         if and (hasKey $config "git") (not (kindIs "map" $profileGitConfig)) -}}
+{{-           fail (printf "git config for profile %q must be a table" $account) -}}
 {{-         end -}}
-{{-         $gitIdentity = dict "name" (printf "%v" $profileName) "email" (printf "%v" $profileEmail) -}}
+{{-         $profileGhConfig := get $config "gh" | default dict -}}
+{{-         if and (hasKey $config "gh") (not (kindIs "map" $profileGhConfig)) -}}
+{{-           fail (printf "gh config for profile %q must be a table" $account) -}}
+{{-         end -}}
+{{-         $profileGpgSign := $rootGpgSign -}}
+{{-         if hasKey $profileGitConfig "gpgsign" -}}
+{{-           $profileGpgSign = get $profileGitConfig "gpgsign" -}}
+{{-         end -}}
+{{-         if not (kindIs "bool" $profileGpgSign) -}}
+{{-           fail (printf "git.gpgsign for profile %q must be a boolean" $account) -}}
+{{-         end -}}
+{{-         if hasKey $profileGhConfig "gpgsign" -}}
+{{-           $profileGpgSign = get $profileGhConfig "gpgsign" -}}
+{{-         end -}}
+{{-         if not (kindIs "bool" $profileGpgSign) -}}
+{{-           fail (printf "gh.gpgsign for profile %q must be a boolean" $account) -}}
+{{-         end -}}
+{{-         $profileSigningKey := get $profileGhConfig "signingKey" | default "" -}}
+{{-         $profileSshKey := get $profileGhConfig "sshKey" | default "" -}}
+{{-         $profileUsername := get $profileGhConfig "username" | default "" -}}
+{{-         if and (hasKey $profileGhConfig "signingKey") (not (kindIs "string" (get $profileGhConfig "signingKey"))) -}}
+{{-           fail (printf "gh.signingKey for profile %q must be a string" $account) -}}
+{{-         end -}}
+{{-         if and (hasKey $profileGhConfig "sshKey") (not (kindIs "string" (get $profileGhConfig "sshKey"))) -}}
+{{-           fail (printf "gh.sshKey for profile %q must be a string" $account) -}}
+{{-         end -}}
+{{-         if and (hasKey $profileGhConfig "username") (not (kindIs "string" (get $profileGhConfig "username"))) -}}
+{{-           fail (printf "gh.username for profile %q must be a string" $account) -}}
+{{-         end -}}
+{{-         if and (ne $profileUsername "") (not (regexMatch "^[A-Za-z0-9-]+$" $profileUsername)) -}}
+{{-           fail (printf "gh.username for profile %q is invalid" $account) -}}
+{{-         end -}}
+{{-         if and (ne $profileUsername "") (eq $profileSshKey "") -}}
+{{-           $sshGhPath := get $sshGh "path" | default "~/.config/gh/ssh" -}}
+{{-           if not (and (kindIs "string" $sshGhPath) (or (eq $sshGhPath "~") (hasPrefix "~/" $sshGhPath) (hasPrefix "/" $sshGhPath))) -}}
+{{-             fail "ssh.gh.path must be ~, a home-relative path starting with ~/, or an absolute path when a profile SSH key is missing" -}}
+{{-           end -}}
+{{-           $profileSshKey = printf "%s/id_ed25519_github_%s" (trimSuffix "/" $sshGhPath) $profileUsername -}}
+{{-         end -}}
+{{-         if and (eq $profileSigningKey "") (ne $profileSshKey "") -}}
+{{-           $profileSigningKey = printf "%s.pub" $profileSshKey -}}
+{{-         end -}}
+{{-         $sshCommand := "" -}}
+{{-         if ne $profileSshKey "" -}}
+{{-           $sshCommand = printf "ssh -F none -o %q -o IdentitiesOnly=yes" (printf "IdentityFile=%s" $profileSshKey) -}}
+{{-         end -}}
+{{-         $profileName = get $profileGitConfig "name" | default $profileName -}}
+{{-         $profileEmail = get $profileGitConfig "email" | default $profileEmail -}}
+{{-         $gitIdentity = dict "name" (printf "%v" $profileName) "email" (printf "%v" $profileEmail) "signingKey" $profileSigningKey "gpgsign" $profileGpgSign "sshCommand" $sshCommand -}}
 {{-       end -}}
 {{-       $profileDirectory := printf "~/%s/%s" $profilesDir $account -}}
 {{-       $profileSettings := includeTemplate "Code/settings-profile.json" (dict

@@ -64,7 +64,7 @@ patterns are:
 | `dotfiles-<profile>`                 | Open this repository in that VS Code profile                               |
 | `git <alias> COMMAND`                | Run Git with the configured profile identity                               |
 | `gh <alias> COMMAND`                 | Use the profile's GitHub CLI configuration                                 |
-| `profile-use TOOL PROFILE [ARGS...]` | General launcher for supported profiled tools                              |
+| `use TOOL PROFILE [ARGS...]`           | General launcher for supported profiled tools                              |
 
 For example, if `work` enables the matching tools:
 
@@ -74,7 +74,7 @@ claude-work
 code-work .
 git work status
 gh work auth status
-profile-use vscode work .
+use vscode work .
 ```
 
 The names and available launchers depend on local profile configuration. See

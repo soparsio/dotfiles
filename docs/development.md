@@ -14,7 +14,6 @@ The full repository check uses:
 - Python 3 for isolated tests and configuration helpers
 - Git, Make, and a POSIX-compatible shell
 - `gh` for GitHub CLI profile checks
-- `shfmt` when explicitly normalizing a shell template with `FIX=1`
 
 Install any missing tools using the environment's normal package or version
 manager. The checks do not install dependencies or apply dotfiles.
@@ -78,20 +77,17 @@ make check-assistant-configs
 This target uses Python's JSON parser on the files listed in the `Makefile`; it
 also runs as part of `make check`.
 
-### Lint a shell template
+### Lint Go templates
 
-The shell-template linter renders templates with sample profile data, then
-checks formatting, whitespace, and shell syntax. Run it for the complete
-source tree with `make check`, or focus on a changed template:
+The template checker checks source whitespace in Go templates. Run it for
+the complete source tree with `make check`, or focus on a changed template:
 
 ```sh
-make lint-shell-template TEMPLATE_PATH=home/dot_config/zsh/functions.zsh.tmpl
+make lint-template TEMPLATE_PATH=home/dot_config/zsh/functions.zsh.tmpl
 ```
 
-Pass a directory to check all shell templates in that directory. Use
-`FIX=1` only when intentionally allowing the linter to normalize whitespace in
-the selected source. Formatting runs on rendered temporary files; it does not
-rewrite the source template with `shfmt`.
+Pass a directory to check its Go templates. `FIX=1` removes trailing
+whitespace and whitespace-only lines from the selected source.
 
 ## Review the rendered result
 
