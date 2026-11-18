@@ -49,7 +49,7 @@ if [ "$suite" != bootstrap ]; then
   done
 fi
 
-PROFILE_TEST_DATA='{"name":"Fixture User","email":"fixture@example.test","editor":"code --wait","vscode":{"defaultProfile":"Default"},"path":{"aliases":{"home":"~","root":"/","ws":"~/Workspace","projects":"~/Projects"},"profiles":"~/.config/profiles"},"accounts":{"default":{"tools":["codex","vscode"],"name":"Default"},"review":{"tools":["codex","gh","git","vscode"],"alias":"review-account","name":"Review Profile","email":"profile@example.test","git":{"name":"Review User","email":"review@example.test"}},"git_only":{"tools":["git","vscode"],"email":"git-only@example.test"},"vscode_only":{"tools":["vscode"]},"gh-default":{"tools":["gh"],"alias":"fallback-login"},"gh-git-default":{"tools":["gh","git"],"alias":"custom-alias","git":{"name":"Fallback Git","email":"fallback@example.test"}}}}'
+PROFILE_TEST_DATA='{"name":"Fixture User","email":"fixture@example.test","editor":"code --wait","vscode":{"defaultProfile":"Default"},"path":{"aliases":{"home":"~","root":"/","ws":"~/Workspace","projects":"~/Projects"},"profiles":"~/.config/profiles"},"ssh":{"gh":{"path":"~/.config/gh/ssh","accounts":[]}},"accounts":{"default":{"tools":["codex","vscode"],"name":"Default"},"review":{"tools":["codex","gh","git","vscode"],"alias":"review-account","name":"Review Profile","email":"profile@example.test","git":{"name":"Review User","email":"review@example.test","gpgsign":false},"gh":{"username":"review-github","gpgsign":false,"sshKey":"~/.ssh/review-ssh","signingKey":"~/.ssh/review-signing.pub"}},"git_only":{"tools":["git","vscode"],"email":"git-only@example.test"},"vscode_only":{"tools":["vscode"]},"gh-default":{"tools":["gh"],"alias":"fallback-login"},"gh-git-default":{"tools":["gh","git"],"alias":"custom-alias","git":{"name":"Fallback Git","email":"fallback@example.test"}}}}'
 ARRAY_PROFILE_TEST_DATA='{"editor":"code --wait","vscode":{"defaultProfile":"Default"},"path":{"profiles":"~/.config/profiles"},"accounts":[{"id":"array-profile","name":"Array Profile","email":"array@example.test","alias":"array-gh","tools":["codex","gh","git","vscode"],"git":{"gpgsign":true},"gh":{"username":"array-user"}}],"ssh":{"gh":{"accounts":[{"username":"array-user","signingKey":"~/.ssh/array-signing.pub"}]}}}'
 NUMERIC_PROFILE_TEST_DATA='{"editor":"code --wait","path":{"profiles":"~/.config/profiles"},"accounts":{"numeric":{"tools":["git","gh"],"alias":123,"name":123}}}'
 MULTI_TOOL_ALIAS_TEST_DATA='{"accounts":{"work":{"tools":["codex","claude","copilot","gemini","vscode"]}}}'
@@ -236,15 +236,15 @@ check_profiles() {
   test "$(cat "$tmpdir/profiles-dir-trailing-slash")" = '.config/profiles'
   "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data "$PROFILE_TEST_DATA" cat ~/.config/zsh/aliases.zsh >"$tmpdir/aliases"
   grep -Fx 'alias c="claude"' "$tmpdir/aliases" >/dev/null
-  grep -Fx "alias code='profile-use vscode Default'" "$tmpdir/aliases" >/dev/null
+  grep -Fx "alias code='use vscode Default'" "$tmpdir/aliases" >/dev/null
   "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data "$MULTI_TOOL_ALIAS_TEST_DATA" execute-template --file home/dot_config/zsh/aliases.zsh.tmpl >"$tmpdir/multi-tool-aliases"
-  grep -Fx "alias codex-work='profile-use codex work'" "$tmpdir/multi-tool-aliases" >/dev/null
-  grep -Fx "alias claude-work='profile-use claude work'" "$tmpdir/multi-tool-aliases" >/dev/null
-  grep -Fx "alias copilot-work='profile-use copilot work'" "$tmpdir/multi-tool-aliases" >/dev/null
-  grep -Fx "alias gemini-work='profile-use gemini work'" "$tmpdir/multi-tool-aliases" >/dev/null
-  zsh -fc 'source "$1"; alias -L codex-work' _ "$tmpdir/multi-tool-aliases" | grep -Fx "alias codex-work='profile-use codex work'" >/dev/null
+  grep -Fx "alias codex-work='use codex work'" "$tmpdir/multi-tool-aliases" >/dev/null
+  grep -Fx "alias claude-work='use claude work'" "$tmpdir/multi-tool-aliases" >/dev/null
+  grep -Fx "alias copilot-work='use copilot work'" "$tmpdir/multi-tool-aliases" >/dev/null
+  grep -Fx "alias gemini-work='use gemini work'" "$tmpdir/multi-tool-aliases" >/dev/null
+  zsh -fc 'source "$1"; alias -L codex-work' _ "$tmpdir/multi-tool-aliases" | grep -Fx "alias codex-work='use codex work'" >/dev/null
   "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data "$ARRAY_PROFILE_TEST_DATA" execute-template --file home/dot_config/zsh/aliases.zsh.tmpl >"$tmpdir/array-profile-aliases"
-  grep -Fx "alias codex-array-profile='profile-use codex array-profile'" "$tmpdir/array-profile-aliases" >/dev/null
+  grep -Fx "alias codex-array-profile='use codex array-profile'" "$tmpdir/array-profile-aliases" >/dev/null
   "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data "$ARRAY_PROFILE_TEST_DATA" cat ~/.config/git/config >"$tmpdir/array-profile-git-config"
   grep -F 'array-gh = "!f() { unset GH_TOKEN' "$tmpdir/array-profile-git-config" >/dev/null
   grep -F 'GH_CONFIG_DIR=\"$HOME/.config/profiles/array-profile/gh\" git' "$tmpdir/array-profile-git-config" >/dev/null
@@ -319,8 +319,8 @@ check_profiles() {
   mkdir -p "$tmpdir/config-source"
   "$CHEZMOI" --source "$tmpdir/config-source" --config "$tmpdir/chezmoi.yaml" data --format=json >"$tmpdir/chezmoi-config-data.json"
   python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); assert data["name"] == "Fixture User" and data["email"] == "fixture@example.test"; assert "defaultProfile" not in data and "vscode" not in data and "workspaceDir" not in data and "profilesDir" not in data and "accounts" not in data' "$tmpdir/chezmoi-config-data.json"
-  grep -F "alias dotfiles='profile-use vscode Default" "$tmpdir/aliases" >/dev/null
-  grep -F "alias dotfiles-review='profile-use vscode review" "$tmpdir/aliases" >/dev/null
+  grep -F "alias dotfiles='use vscode Default" "$tmpdir/aliases" >/dev/null
+  grep -F "alias dotfiles-review='use vscode review" "$tmpdir/aliases" >/dev/null
   grep -F 'alias ws='\''builtin cd -- "$HOME"/"Workspace"'\''' "$tmpdir/aliases" >/dev/null
   grep -F 'alias projects='\''builtin cd -- "$HOME"/"Projects"'\''' "$tmpdir/aliases" >/dev/null
   grep -F 'alias home='\''builtin cd -- "$HOME"'\''' "$tmpdir/aliases" >/dev/null
@@ -350,11 +350,11 @@ check_profiles() {
   grep -F 'export OLLAMA_HOST="127.0.0.1:11434"' "$tmpdir/exports" >/dev/null
   "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data "$PROFILE_TEST_DATA" cat ~/.config/zsh/functions.zsh >"$tmpdir/functions"
   "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data '{"accounts":null}' cat ~/.config/zsh/functions.zsh >"$tmpdir/functions-no-profiles"
-  ! grep -E '^(profile-enabled|profile-git-config|profile-clear-environment|profile-clear-gh-environment|profile-use-gh|profile-use-vscode|profile-use-git|profile-use-cli|profile-use)\(\)' "$tmpdir/functions-no-profiles" >/dev/null
+  ! grep -E '^(_profile-enabled|_profile-git-config|_profile-clear-environment|_profile-clear-gh-environment|use-gh|use-code|use-git|use-cli|use)\(\)' "$tmpdir/functions-no-profiles" >/dev/null
   mkdir -p "$tmpdir/profile-gh-home" "$tmpdir/profile-gh-bin"
   printf '%s\n' '#!/bin/sh' 'printf "%s\n" "${GH_TOKEN-}" "${GH_CONFIG_DIR-}" "${GIT_CONFIG_PARAMETERS-}" "$*"' >"$tmpdir/profile-gh-bin/gh"
   chmod +x "$tmpdir/profile-gh-bin/gh"
-  PATH="$tmpdir/profile-gh-bin:$PATH" HOME="$tmpdir/profile-gh-home" GH_TOKEN=shared-token zsh -c 'source "$1"; profile-use gh review auth status' _ "$tmpdir/functions" >"$tmpdir/profile-gh-auth"
+  PATH="$tmpdir/profile-gh-bin:$PATH" HOME="$tmpdir/profile-gh-home" GH_TOKEN=shared-token zsh -c 'source "$1"; use gh review auth status' _ "$tmpdir/functions" >"$tmpdir/profile-gh-auth"
   test -z "$(sed -n '1p' "$tmpdir/profile-gh-auth")"
   test "$(sed -n '2p' "$tmpdir/profile-gh-auth")" = "$tmpdir/profile-gh-home/.config/profiles/review/gh"
   grep -F "'user.name=Review User' 'user.email=review@example.test'" "$tmpdir/profile-gh-auth" >/dev/null
@@ -369,30 +369,34 @@ check_profiles() {
   grep -F 'CODEX_HOME=$HOME/.config/profiles/default/codex' "$tmpdir/functions" >/dev/null
   grep -F 'git_config_parameters="${git_config_parameters}${git_config_parameters:+ }'\''user.name=Review User'\''"' "$tmpdir/functions" >/dev/null
   grep -F 'git_config_parameters="${git_config_parameters}${git_config_parameters:+ }'\''user.email=review@example.test'\''"' "$tmpdir/functions" >/dev/null
-  GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=credential.helper GIT_CONFIG_KEY_1=credential.helper GIT_CONFIG_VALUE_1=stale zsh -c 'source "$1"; profile-git-config review; test -z "${GIT_CONFIG_VALUE_0+x}"; test "$(git config user.name)" = "Review User"; test "$(git config user.email)" = "review@example.test"; git config --get-all credential.helper | grep -Fx "!gh auth git-credential" > /dev/null' _ "$tmpdir/functions"
+  GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=credential.helper GIT_CONFIG_KEY_1=credential.helper GIT_CONFIG_VALUE_1=stale zsh -c 'source "$1"; _profile-git-config review; test -z "${GIT_CONFIG_VALUE_0+x}"; test "$(git config user.name)" = "Review User"; test "$(git config user.email)" = "review@example.test"; git config --get-all credential.helper | grep -Fx "!gh auth git-credential" > /dev/null' _ "$tmpdir/functions"
   printf '%s\n' '#!/bin/sh' 'printf "%s\n" "${GIT_CONFIG_PARAMETERS-}" "${GH_CONFIG_DIR-}" "${GH_TOKEN-}"' >"$tmpdir/profile-gh-bin/code"
   chmod +x "$tmpdir/profile-gh-bin/code"
-  PATH="$tmpdir/profile-gh-bin:$PATH" HOME="$tmpdir/profile-gh-home" GH_CONFIG_DIR="$tmpdir/stale-gh-config" GH_TOKEN=stale-token zsh -c 'source "$1"; profile-use vscode git_only' _ "$tmpdir/functions" >"$tmpdir/profile-vscode-git-only"
+  PATH="$tmpdir/profile-gh-bin:$PATH" HOME="$tmpdir/profile-gh-home" GH_CONFIG_DIR="$tmpdir/stale-gh-config" GH_TOKEN=stale-token zsh -c 'source "$1"; use vscode git_only' _ "$tmpdir/functions" >"$tmpdir/profile-vscode-git-only"
   grep -F "'user.email=git-only@example.test'" "$tmpdir/profile-vscode-git-only" >/dev/null
   ! grep -F 'credential.helper' "$tmpdir/profile-vscode-git-only" >/dev/null
   test "$(sed -n '2p' "$tmpdir/profile-vscode-git-only")" = "$tmpdir/profile-gh-home/.config/profiles/git_only/gh"
   test -z "$(sed -n '3p' "$tmpdir/profile-vscode-git-only")"
-  PATH="$tmpdir/profile-gh-bin:$PATH" HOME="$tmpdir/profile-gh-home" GH_CONFIG_DIR="$tmpdir/stale-gh-config" GH_TOKEN=stale-token zsh -c 'source "$1"; profile-use vscode vscode_only' _ "$tmpdir/functions" >"$tmpdir/profile-vscode-only"
+  PATH="$tmpdir/profile-gh-bin:$PATH" HOME="$tmpdir/profile-gh-home" GH_CONFIG_DIR="$tmpdir/stale-gh-config" GH_TOKEN=stale-token zsh -c 'source "$1"; use vscode vscode_only' _ "$tmpdir/functions" >"$tmpdir/profile-vscode-only"
   test "$(sed -n '2p' "$tmpdir/profile-vscode-only")" = "$tmpdir/profile-gh-home/.config/profiles/vscode_only/gh"
   test -z "$(sed -n '3p' "$tmpdir/profile-vscode-only")"
-  PATH="$tmpdir/profile-gh-bin:$PATH" HOME="$tmpdir/profile-gh-home" GH_CONFIG_DIR="$tmpdir/stale-gh-config" GH_TOKEN=stale-token zsh -c 'source "$1"; profile-use vscode review' _ "$tmpdir/functions" >"$tmpdir/profile-vscode-review"
+  PATH="$tmpdir/profile-gh-bin:$PATH" HOME="$tmpdir/profile-gh-home" GH_CONFIG_DIR="$tmpdir/stale-gh-config" GH_TOKEN=stale-token zsh -c 'source "$1"; use vscode review' _ "$tmpdir/functions" >"$tmpdir/profile-vscode-review"
   test "$(sed -n '2p' "$tmpdir/profile-vscode-review")" = "$tmpdir/profile-gh-home/.config/profiles/review/gh"
-  grep -F 'profile-clear-environment() {' "$tmpdir/functions" >/dev/null
-  test "$(grep -F -c 'profile-clear-environment' "$tmpdir/functions")" -eq 2
-  grep -F 'profile-clear-gh-environment() {' "$tmpdir/functions" >/dev/null
-  test "$(grep -F -c 'profile-clear-gh-environment' "$tmpdir/functions")" -eq 4
+  grep -F "'user.signingkey=~/.ssh/review-signing.pub'" "$tmpdir/profile-vscode-review" >/dev/null
+  grep -F "'commit.gpgsign=false'" "$tmpdir/profile-vscode-review" >/dev/null
+  grep -F "'core.sshCommand=ssh -F none -o \"IdentityFile=~/.ssh/review-ssh\" -o IdentitiesOnly=yes'" "$tmpdir/profile-vscode-review" >/dev/null
+  HOME="$tmpdir/profile-gh-home" zsh -c 'source "$1"; _profile-git-config review 0; test "$(git config user.signingkey)" = "~/.ssh/review-signing.pub"; test "$(git config commit.gpgsign)" = false; test "$(git config core.sshCommand)" = "ssh -F none -o \"IdentityFile=~/.ssh/review-ssh\" -o IdentitiesOnly=yes"' _ "$tmpdir/functions"
+  grep -F '_profile-clear-environment() {' "$tmpdir/functions" >/dev/null
+  test "$(grep -F -c '_profile-clear-environment' "$tmpdir/functions")" -eq 2
+  grep -F '_profile-clear-gh-environment() {' "$tmpdir/functions" >/dev/null
+  test "$(grep -F -c '_profile-clear-gh-environment' "$tmpdir/functions")" -eq 4
   ! grep -F 'unset GH_TOKEN GITHUB_TOKEN GH_ENTERPRISE_TOKEN GITHUB_ENTERPRISE_TOKEN' "$tmpdir/functions" >/dev/null
-  grep -F 'profile-enabled() {' "$tmpdir/functions" >/dev/null
+  grep -F '_profile-enabled() {' "$tmpdir/functions" >/dev/null
   ! grep -F 'ai-profile-enabled' "$tmpdir/functions" >/dev/null
   ! grep -F 'ai-use() {' "$tmpdir/functions" >/dev/null
   "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data "$PROFILE_TEST_DATA" execute-template --file home/.chezmoiscripts/run_onchange_setup-profiles.sh.tmpl >"$tmpdir/setup-profiles.sh"
-  "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data '{"configDir":".local/profiles/review","profileDirectory":"~/.config/profiles/review","tools":["codex","gh","git"],"terminalEnvironmentPlatform":"linux","gitIdentity":{"name":"Review User","email":"review@example.test"}}' execute-template --file home/.chezmoitemplates/Code/settings-profile.json >"$tmpdir/vscode-profile-settings.json"
-  python3 -c 'import json,sys; settings=json.load(open(sys.argv[1])); assert settings["chat.instructionsFilesLocations"] == {".github/instructions":True,".claude/rules":True,"~/.local/profiles/review/copilot":True,"~/.local/profiles/review/claude":True}; env=settings["terminal.integrated.env.linux"]; assert env["CODEX_HOME"] == "~/.config/profiles/review/codex" and env["GH_CONFIG_DIR"] == "~/.config/profiles/review/gh"; assert env["GIT_CONFIG_COUNT"] == "4" and env["GIT_CONFIG_VALUE_2"] == "Review User" and env["GIT_CONFIG_VALUE_3"] == "review@example.test"; assert env["GH_TOKEN"] is None and env["GIT_CONFIG_PARAMETERS"] is None' "$tmpdir/vscode-profile-settings.json"
+  "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data '{"configDir":".local/profiles/review","profileDirectory":"~/.config/profiles/review","tools":["codex","gh","git"],"terminalEnvironmentPlatform":"linux","gitIdentity":{"name":"Review User","email":"review@example.test","signingKey":"~/.ssh/review-signing.pub","gpgsign":true,"sshCommand":"ssh -F none -o IdentityFile=~/.ssh/review-ssh -o IdentitiesOnly=yes"}}' execute-template --file home/.chezmoitemplates/Code/settings-profile.json >"$tmpdir/vscode-profile-settings.json"
+  python3 -c 'import json,sys; settings=json.load(open(sys.argv[1])); assert settings["chat.instructionsFilesLocations"] == {".github/instructions":True,".claude/rules":True,"~/.local/profiles/review/copilot":True,"~/.local/profiles/review/claude":True}; env=settings["terminal.integrated.env.linux"]; assert env["CODEX_HOME"] == "~/.config/profiles/review/codex" and env["GH_CONFIG_DIR"] == "~/.config/profiles/review/gh"; assert env["GIT_CONFIG_COUNT"] == "7"; assert env["GIT_CONFIG_KEY_4"] == "user.signingkey" and env["GIT_CONFIG_VALUE_4"] == "~/.ssh/review-signing.pub"; assert env["GIT_CONFIG_KEY_5"] == "commit.gpgsign" and env["GIT_CONFIG_VALUE_5"] == "true"; assert env["GIT_CONFIG_KEY_6"] == "core.sshCommand" and env["GIT_CONFIG_VALUE_6"] == "ssh -F none -o IdentityFile=~/.ssh/review-ssh -o IdentitiesOnly=yes"; assert env["GH_TOKEN"] is None and env["GIT_CONFIG_PARAMETERS"] is None' "$tmpdir/vscode-profile-settings.json"
   profile_setup_checksum=$(python3 -c 'import hashlib,pathlib; print(hashlib.sha256(pathlib.Path("scripts/configure-vscode-profiles.py").read_bytes()).hexdigest())')
   grep -F "# VS Code profile setup checksum: $profile_setup_checksum" "$tmpdir/setup-profiles.sh" >/dev/null
 }
@@ -681,7 +685,7 @@ assert environment["GH_CONFIG_DIR"] == f"{profile_home}/.config/profiles/review/
 assert environment["GH_TOKEN"] is None
 assert environment["GITHUB_TOKEN"] is None
 assert environment["GIT_CONFIG_PARAMETERS"] is None
-assert environment["GIT_CONFIG_COUNT"] == "4"
+assert environment["GIT_CONFIG_COUNT"] == "7"
 assert environment["GIT_CONFIG_KEY_0"] == "credential.helper"
 assert environment["GIT_CONFIG_VALUE_0"] == ""
 assert environment["GIT_CONFIG_KEY_1"] == "credential.helper"
@@ -690,6 +694,12 @@ assert environment["GIT_CONFIG_KEY_2"] == "user.name"
 assert environment["GIT_CONFIG_VALUE_2"] == "Review User"
 assert environment["GIT_CONFIG_KEY_3"] == "user.email"
 assert environment["GIT_CONFIG_VALUE_3"] == "review@example.test"
+assert environment["GIT_CONFIG_KEY_4"] == "user.signingkey"
+assert environment["GIT_CONFIG_VALUE_4"] == f"{profile_home}/.ssh/review-signing.pub"
+assert environment["GIT_CONFIG_KEY_5"] == "commit.gpgsign"
+assert environment["GIT_CONFIG_VALUE_5"] == "false"
+assert environment["GIT_CONFIG_KEY_6"] == "core.sshCommand"
+assert environment["GIT_CONFIG_VALUE_6"] == 'ssh -F none -o "IdentityFile=~/.ssh/review-ssh" -o IdentitiesOnly=yes'
 process_environment = os.environ.copy()
 for key, value in environment.items():
     if value is None:
@@ -699,6 +709,12 @@ for key, value in environment.items():
 assert subprocess.run(
     ["git", "config", "user.name"], check=True, capture_output=True, text=True, env=process_environment
 ).stdout.strip() == "Review User"
+assert subprocess.run(
+    ["git", "config", "commit.gpgsign"], check=True, capture_output=True, text=True, env=process_environment
+).stdout.strip() == "false"
+assert subprocess.run(
+    ["git", "config", "core.sshCommand"], check=True, capture_output=True, text=True, env=process_environment
+).stdout.strip() == environment["GIT_CONFIG_VALUE_6"]
 credential_helpers = subprocess.run(
     ["git", "config", "--get-all", "credential.helper"],
     check=True,

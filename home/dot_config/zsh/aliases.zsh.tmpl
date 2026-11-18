@@ -103,12 +103,12 @@ alias dcd="docker compose down"
 alias {{ $alias }}='{{ $aliasValue }}'
 {{- end }}
 alias c="claude"
-alias dotfiles='profile-use vscode Default "$(dirname "$(chezmoi source-path)")"'
+alias dotfiles='use vscode Default "$(dirname "$(chezmoi source-path)")"'
 {{ if $accounts }}
 {{-   with (index $vscode "defaultProfile") }}
 {{-     $defaultProfile := . }}
 {{-     if eq $defaultProfile "Default" }}
-alias code='profile-use vscode Default'
+alias code='use vscode Default'
 {{-     else }}
 {{-       $config := index $accounts $defaultProfile }}
 {{-       if not $config }}
@@ -118,7 +118,7 @@ alias code='profile-use vscode Default'
 {{-       if not (has "vscode" $tools) }}
 {{-         fail (printf "default profile %q must enable vscode" $defaultProfile) }}
 {{-       end }}
-alias code='profile-use vscode {{ $defaultProfile }}'
+alias code='use vscode {{ $defaultProfile }}'
 {{-     end }}
 {{     "\n" -}}
 {{-   end }}
@@ -126,12 +126,12 @@ alias code='profile-use vscode {{ $defaultProfile }}'
 {{-     $tools := includeTemplate "accounts/tools" (dict "account" $config) | fromJson -}}
 {{-     range $tool := $tools -}}
 {{-       if eq $tool "vscode" -}}
-alias code-{{ $account }}='profile-use vscode {{ $account }}'
+alias code-{{ $account }}='use vscode {{ $account }}'
 {{-         "\n" -}}
-alias dotfiles-{{ $account }}='profile-use vscode {{ $account }} "$(dirname "$(chezmoi source-path)")"'
+alias dotfiles-{{ $account }}='use vscode {{ $account }} "$(dirname "$(chezmoi source-path)")"'
 {{-         "\n" -}}
 {{-       else if not (or (eq $tool "antigravity") (eq $tool "gh") (eq $tool "git")) -}}
-alias {{ $tool }}-{{ $account }}='profile-use {{ $tool }} {{ $account }}'
+alias {{ $tool }}-{{ $account }}='use {{ $tool }} {{ $account }}'
 {{-         "\n" -}}
 {{-       end -}}
 {{-     end -}}

@@ -155,14 +155,14 @@ example:
 | VS Code            | Opens the configured native VS Code profile and configures its new integrated terminals for enabled tools.                                     |
 
 `antigravity` is accepted in profile data, but does not have a generated
-`profile-use` launcher.
+`use` launcher.
 
 Generated Zsh launchers use names such as `codex-personal` and
 `code-personal`; Git and GitHub CLI aliases use commands such as
 `git personal status` and `gh personal auth status` (replace `personal` with
 the configured alias). Exact names depend on the local accounts.
 
-Use `profile-use TOOL PROFILE [arguments...]` as the general launcher for
+Use `use TOOL PROFILE [arguments...]` as the general launcher for
 Codex, Claude Code, Copilot CLI, Gemini CLI, GitHub CLI, Git, and VS Code.
 SSH remotes continue to use the SSH key selected by SSH.
 

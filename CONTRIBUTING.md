@@ -44,10 +44,11 @@ The full check validates rendered templates, shell syntax, assistant JSON,
 profile behavior, and tracked whitespace without applying changes to your home
 directory. For focused behavior tests, use `make check-bootstrap`,
 `make check-profiles`, `make check-platforms`, `make check-profile-state`, or
-`make check-vscode`. To lint one shell template or directory, use:
+`make check-vscode`. To check Go template whitespace in one file or directory,
+use:
 
 ```sh
-make lint-shell-template TEMPLATE_PATH=home/dot_config/zsh/functions.zsh.tmpl
+make lint-template TEMPLATE_PATH=home/dot_config/zsh/functions.zsh.tmpl
 ```
 
 For shell-check failures, `CHECK_TRACE=1 make check-repository` prints the

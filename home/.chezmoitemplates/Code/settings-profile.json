@@ -17,7 +17,7 @@
 	"GH_ENTERPRISE_TOKEN" $unset
 	"GITHUB_ENTERPRISE_TOKEN" $unset
 -}}
-{{- range $index := until 4 -}}
+{{- range $index := until 7 -}}
 {{-   $_ := set $environment (printf "GIT_CONFIG_KEY_%d" $index) $unset -}}
 {{-   $_ := set $environment (printf "GIT_CONFIG_VALUE_%d" $index) $unset -}}
 {{- end -}}
@@ -43,6 +43,19 @@
 {{-     if $value -}}
 {{-       $gitConfiguration = append $gitConfiguration (dict "key" (printf "user.%s" $key) "value" $value) -}}
 {{-     end -}}
+{{-   end -}}
+{{-   $signingKey := get $gitIdentity "signingKey" | default "" -}}
+{{-   if $signingKey -}}
+{{-     $gitConfiguration = append $gitConfiguration (dict "key" "user.signingkey" "value" $signingKey) -}}
+{{-   end -}}
+{{-   $gpgSign := get $gitIdentity "gpgsign" | default false -}}
+{{-   if not (kindIs "bool" $gpgSign) -}}
+{{-     fail "gitIdentity.gpgsign must be a boolean" -}}
+{{-   end -}}
+{{-   $gitConfiguration = append $gitConfiguration (dict "key" "commit.gpgsign" "value" (printf "%t" $gpgSign)) -}}
+{{-   $sshCommand := get $gitIdentity "sshCommand" | default "" -}}
+{{-   if $sshCommand -}}
+{{-     $gitConfiguration = append $gitConfiguration (dict "key" "core.sshCommand" "value" $sshCommand) -}}
 {{-   end -}}
 {{- end -}}
 {{- if $gitConfiguration -}}

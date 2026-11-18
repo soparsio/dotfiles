@@ -47,7 +47,8 @@
 	"files.associations": {
 		"*.tmpl": "go-template",
 		"*.json.example": "json",
-		"*.yaml.example": "yaml"
+		"*.yaml.example": "yaml",
+		"**/ssh/config": "ssh_config"
 	},
 	"git.autofetch": true,
 	"git.addAICoAuthor": "off",

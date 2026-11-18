@@ -13,7 +13,7 @@ Use this convention for Go template source, including chezmoi `.tmpl` files and 
 
 - JSON: use tabs for indentation in this repository, as specified by `.editorconfig` for `*.json`. Preserve key order, values, and Go template expressions.
 - YAML and TOML: use two spaces for indentation, following `.editorconfig` and existing sources.
-- Shell: follow the shell style and formatter used by the repository. Format rendered shell when needed rather than passing mixed Go template source to a plain shell formatter.
+- Shell: follow established shell style and validate the rendered shell when a repository check is available. Do not pass mixed Go template source to a shell formatter.
 - For other types, follow the applicable `.editorconfig` rule and established neighboring files.
 - When a formatter cannot parse template expressions, protect them with context-appropriate placeholders, format only the literal output structure, then restore each expression exactly. For dynamic JSON keys, use a valid quoted placeholder key during formatting and restore the original key expression afterward.
 - Validate the rendered output with an existing repository check or representative safe data when available. Do not substitute machine-local data or expose secrets to make a template render.
