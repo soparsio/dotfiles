@@ -76,6 +76,6 @@ while IFS= read -r key_path; do
   ssh-keygen -q -t ed25519 -N "" -f "$key_path"
 done <<'CHEZMOI_SSH_KEY_PATHS'
 {{ range $keyPath := $sshKeyPaths }}
-{{ $keyPath }}
+{{   $keyPath }}
 {{ end -}}
 CHEZMOI_SSH_KEY_PATHS

@@ -87,17 +87,17 @@ if (( $# > 1 )) || ! [[ "$levels" =~ '^[0-9]+$' ]] || (( levels < 1 )); then
 	esac
 	}
 
-{{-   $accounts := includeTemplate "accounts/by-id" . | fromJson }}
-{{-   $profilesDir := includeTemplate "path/profiles-dir" . }}
-{{-   if and (kindIs "map" $accounts) (gt (len $accounts) 0) }}
-{{-     range $account, $config := $accounts }}
-{{-       if not (regexMatch "^[a-zA-Z0-9._-]+$" $account) }}
-{{-         fail (printf "invalid profile name %q" $account) }}
-{{-       end }}
+{{- $accounts := includeTemplate "accounts/by-id" . | fromJson }}
+{{- $profilesDir := includeTemplate "path/profiles-dir" . }}
+{{- if and (kindIs "map" $accounts) (gt (len $accounts) 0) }}
+{{-   range $account, $config := $accounts }}
+{{-     if not (regexMatch "^[a-zA-Z0-9._-]+$" $account) }}
+{{-       fail (printf "invalid profile name %q" $account) }}
+{{-     end }}
 
-{{-       $tools := includeTemplate "accounts/tools" (dict "account" $config) | fromJson }}
-{{-       range $tool := $tools }}
-{{-         if not (or
+{{-     $tools := includeTemplate "accounts/tools" (dict "account" $config) | fromJson }}
+{{-     range $tool := $tools }}
+{{-       if not (or
 					(eq $tool "codex")
 					(eq $tool "claude")
 					(eq $tool "copilot")
@@ -108,34 +108,34 @@ if (( $# > 1 )) || ! [[ "$levels" =~ '^[0-9]+$' ]] || (( levels < 1 )); then
 					(eq $tool "antigravity")
 				)
 				}}
-{{-           fail (printf "unsupported profile tool %q in profile %q" $tool $account) }}
-{{-         end }}
+{{-         fail (printf "unsupported profile tool %q in profile %q" $tool $account) }}
+{{-       end }}
+{{-     end }}
+
+{{-     if not (kindIs "slice" $config) }}
+{{-       $gitConfig := index $config "git" | default dict }}
+{{-       if not (kindIs "map" $gitConfig) }}
+{{-         fail (printf "git config for profile %q must be a table" $account) }}
 {{-       end }}
 
-{{-       if not (kindIs "slice" $config) }}
-{{-         $gitConfig := index $config "git" | default dict }}
-{{-         if not (kindIs "map" $gitConfig) }}
-{{-           fail (printf "git config for profile %q must be a table" $account) }}
-{{-         end }}
-
-{{-         if has "gh" $tools }}
-{{-           $ghConfig := index $config "gh" | default dict }}
-{{-           if not (kindIs "map" $ghConfig) }}
-{{-             fail (printf "gh config for profile %q must be a table" $account) }}
-{{-           end }}
+{{-       if has "gh" $tools }}
+{{-         $ghConfig := index $config "gh" | default dict }}
+{{-         if not (kindIs "map" $ghConfig) }}
+{{-           fail (printf "gh config for profile %q must be a table" $account) }}
 {{-         end }}
 {{-       end }}
 {{-     end }}
+{{-   end }}
 
 		# Return success when PROFILE includes TOOL in its configured tool list.
 		profile-enabled() {
 		case "$1:$2" in{{ "\n" -}}
-{{-     range $account, $config := $accounts -}}
-{{-       $tools := includeTemplate "accounts/tools" (dict "account" $config) | fromJson -}}
-{{-       range $tool := $tools -}}
-{{-         printf "    \"%s:%s\") return 0 ;;\n" $tool $account -}}
-{{-       end -}}
+{{-   range $account, $config := $accounts -}}
+{{-     $tools := includeTemplate "accounts/tools" (dict "account" $config) | fromJson -}}
+{{-     range $tool := $tools -}}
+{{-       printf "    \"%s:%s\") return 0 ;;\n" $tool $account -}}
 {{-     end -}}
+{{-   end -}}
 		*) return 1 ;;
 		esac
 		}
@@ -148,27 +148,27 @@ if (( $# > 1 )) || ! [[ "$levels" =~ '^[0-9]+$' ]] || (( levels < 1 )); then
 		fi
 		unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 GIT_CONFIG_KEY_1 GIT_CONFIG_VALUE_1
 		case "$account" in{{ "\n" -}}
-{{-     range $account, $config := $accounts -}}
-{{-       $profileData := dict -}}
-{{-       $tools := includeTemplate "accounts/tools" (dict "account" $config) | fromJson -}}
-{{-       $gitConfig := dict -}}
-{{-       if not (kindIs "slice" $config) -}}
-{{-         $profileData = $config -}}
-{{-         $gitConfig = index $config "git" | default dict -}}
-{{-       end -}}
-{{-       $gitName := printf "%v" (index $gitConfig "name" | default (index $profileData "name" | default "")) -}}
-{{-       $gitEmail := printf "%v" (index $gitConfig "email" | default (index $profileData "email" | default "")) -}}
-{{-       if and (has "git" $tools) (or $gitName $gitEmail) -}}
-{{-         printf "    \"%s\")\n" $account -}}
-{{-         if $gitName -}}
-{{-           printf "      git_config_parameters=\"${git_config_parameters}${git_config_parameters:+ }'user.name=%s'\"\n" (replace "'" "'\\''" $gitName) -}}
-{{-         end -}}
-{{-         if $gitEmail -}}
-{{-           printf "      git_config_parameters=\"${git_config_parameters}${git_config_parameters:+ }'user.email=%s'\"\n" (replace "'" "'\\''" $gitEmail) -}}
-{{-         end -}}
-{{-         printf "      ;;\n" -}}
-{{-       end -}}
+{{-   range $account, $config := $accounts -}}
+{{-     $profileData := dict -}}
+{{-     $tools := includeTemplate "accounts/tools" (dict "account" $config) | fromJson -}}
+{{-     $gitConfig := dict -}}
+{{-     if not (kindIs "slice" $config) -}}
+{{-       $profileData = $config -}}
+{{-       $gitConfig = index $config "git" | default dict -}}
 {{-     end -}}
+{{-     $gitName := printf "%v" (index $gitConfig "name" | default (index $profileData "name" | default "")) -}}
+{{-     $gitEmail := printf "%v" (index $gitConfig "email" | default (index $profileData "email" | default "")) -}}
+{{-     if and (has "git" $tools) (or $gitName $gitEmail) -}}
+{{-       printf "    \"%s\")\n" $account -}}
+{{-       if $gitName -}}
+{{-         printf "      git_config_parameters=\"${git_config_parameters}${git_config_parameters:+ }'user.name=%s'\"\n" (replace "'" "'\\''" $gitName) -}}
+{{-       end -}}
+{{-       if $gitEmail -}}
+{{-         printf "      git_config_parameters=\"${git_config_parameters}${git_config_parameters:+ }'user.email=%s'\"\n" (replace "'" "'\\''" $gitEmail) -}}
+{{-       end -}}
+{{-       printf "      ;;\n" -}}
+{{-     end -}}
+{{-   end -}}
 		*) ;;
 		esac
 		if [[ -n "$git_config_parameters" ]]; then
@@ -209,39 +209,39 @@ if (( $# > 1 )) || ! [[ "$levels" =~ '^[0-9]+$' ]] || (( levels < 1 )); then
 		shift
 
 		case "$account" in{{ "\n" -}}
-{{-     range $account, $config := $accounts -}}
-{{-       if not (kindIs "slice" $config) -}}
-{{-         with index $config "name" -}}
-{{-           printf "    \"%s\") vscode_profile=%s ;;\n" $account (. | quote) -}}
-{{-         end -}}
+{{-   range $account, $config := $accounts -}}
+{{-     if not (kindIs "slice" $config) -}}
+{{-       with index $config "name" -}}
+{{-         printf "    \"%s\") vscode_profile=%s ;;\n" $account (. | quote) -}}
 {{-       end -}}
 {{-     end -}}
-{{-     printf "  esac\n" }}
+{{-   end -}}
+{{-   printf "  esac\n" }}
 		case "$account" in{{ "\n" -}}
-{{-     range $account, $config := $accounts -}}
-{{-       $tools := includeTemplate "accounts/tools" (dict "account" $config) | fromJson -}}
-{{-       if has "vscode" $tools -}}
-{{-         printf "    \"%s\")\n" $account -}}
-{{-         printf "      profile_env+=(\"GH_CONFIG_DIR=$HOME/%s/%s/gh\")\n" $profilesDir $account -}}
-{{-         range $tool := $tools -}}
-{{-           if eq $tool "codex" -}}
-{{-             printf "      profile_env+=(\"CODEX_HOME=$HOME/%s/%s/codex\")\n" $profilesDir $account -}}
-{{-           else if eq $tool "claude" -}}
-{{-             printf "      profile_env+=(\"CLAUDE_CONFIG_DIR=$HOME/%s/%s/claude\")\n" $profilesDir $account -}}
-{{-           else if eq $tool "copilot" -}}
-{{-             printf "      profile_env+=(\"COPILOT_HOME=$HOME/%s/%s/copilot\")\n" $profilesDir $account -}}
-{{-           else if eq $tool "gemini" -}}
-{{-             printf "      profile_env+=(\"GEMINI_CLI_HOME=$HOME/%s/%s/gemini\")\n" $profilesDir $account -}}
-{{-           else if eq $tool "git" -}}
-{{-             printf "      git_profile_enabled=1\n" -}}
-{{-           else if eq $tool "gh" -}}
-{{-             printf "      gh_profile_enabled=1\n" -}}
-{{-           end -}}
+{{-   range $account, $config := $accounts -}}
+{{-     $tools := includeTemplate "accounts/tools" (dict "account" $config) | fromJson -}}
+{{-     if has "vscode" $tools -}}
+{{-       printf "    \"%s\")\n" $account -}}
+{{-       printf "      profile_env+=(\"GH_CONFIG_DIR=$HOME/%s/%s/gh\")\n" $profilesDir $account -}}
+{{-       range $tool := $tools -}}
+{{-         if eq $tool "codex" -}}
+{{-           printf "      profile_env+=(\"CODEX_HOME=$HOME/%s/%s/codex\")\n" $profilesDir $account -}}
+{{-         else if eq $tool "claude" -}}
+{{-           printf "      profile_env+=(\"CLAUDE_CONFIG_DIR=$HOME/%s/%s/claude\")\n" $profilesDir $account -}}
+{{-         else if eq $tool "copilot" -}}
+{{-           printf "      profile_env+=(\"COPILOT_HOME=$HOME/%s/%s/copilot\")\n" $profilesDir $account -}}
+{{-         else if eq $tool "gemini" -}}
+{{-           printf "      profile_env+=(\"GEMINI_CLI_HOME=$HOME/%s/%s/gemini\")\n" $profilesDir $account -}}
+{{-         else if eq $tool "git" -}}
+{{-           printf "      git_profile_enabled=1\n" -}}
+{{-         else if eq $tool "gh" -}}
+{{-           printf "      gh_profile_enabled=1\n" -}}
 {{-         end -}}
-{{-         printf "      ;;\n" -}}
 {{-       end -}}
+{{-       printf "      ;;\n" -}}
 {{-     end -}}
-{{-     printf "    *) ;;\n  esac\n" }}
+{{-   end -}}
+{{-   printf "    *) ;;\n  esac\n" }}
 
 		# VS Code may reuse an existing process and keep its original environment.
 		(
@@ -329,4 +329,4 @@ if (( $# > 1 )) || ! [[ "$levels" =~ '^[0-9]+$' ]] || (( levels < 1 )); then
 			esac
 			}
 
-{{-     end }}
+{{- end }}

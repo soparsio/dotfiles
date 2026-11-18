@@ -120,7 +120,7 @@ alias code='profile-use vscode Default'
 {{-       end }}
 alias code='profile-use vscode {{ $defaultProfile }}'
 {{-     end }}
-{{ "\n" -}}
+{{     "\n" -}}
 {{-   end }}
 {{-   range $account, $config := $accounts -}}
 {{-     $tools := includeTemplate "accounts/tools" (dict "account" $config) | fromJson -}}
