@@ -53,11 +53,11 @@
 {{-   end -}}
 {{- end -}}
 {
-"chat.instructionsFilesLocations": {
-".github/instructions": true,
-".claude/rules": true,
-{{ printf "~/%s/copilot" $configDir | toJson }}: true,
-{{ printf "~/%s/claude" $configDir | toJson }}: true
-},
-{{ printf "terminal.integrated.env.%s" $terminalEnvPlatform | toJson }}: {{ $environment | toJson }}
+	"chat.instructionsFilesLocations": {
+		".github/instructions": true,
+		".claude/rules": true,
+		{{ printf "~/%s/copilot" $configDir | toJson }}: true,
+		{{ printf "~/%s/claude" $configDir | toJson }}: true
+	},
+	{{ printf "terminal.integrated.env.%s" $terminalEnvPlatform | toJson }}: {{ $environment | toJson }}
 }

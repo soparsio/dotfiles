@@ -5,112 +5,118 @@
 {{-   $schemaURL = printf "file:///%s/config-yaml-schema.json" $encodedExtension -}}
 {{- end -}}
 {
-"[javascript]": {
-"editor.defaultFormatter": "esbenp.prettier-vscode"
-},
-"[json,jsonc,jsonl]": {
-"editor.defaultFormatter": "vscode.json-language-features"
-},
-"[go-template]": {
-"editor.defaultFormatter": "gohugoio.gotmplfmt"
-},
-"chat.instructionsFilesLocations": {
-".github/instructions": true,
-".claude/rules": true,
-"~/.copilot/instructions": true,
-"~/.claude/rules": true
-},
-"chat.agent.enabled": true,
-"chat.disableAIFeatures": false,
-"chat.persistentProgressVerbosity": "conversation",
-"chat.sessionSync.enabled": true,
-"chat.viewSessions.orientation": "stacked",
-"cSpell.language": "en,id",
-"cSpell.userWords": [
-"atuin",
-"bunzip",
-"chezmoi",
-"chezmoiroot",
-"croot",
-"lmstudio",
-"mkcd",
-"ollama",
-"orbstack",
-"shellenv",
-"sihotang",
-"soparsio",
-"toplevel",
-"unxz"
-],
-"editor.defaultFormatter": "esbenp.prettier-vscode",
-"editor.formatOnSave": true,
-"files.associations": {
-"*.json.example": "json",
-"*.json.tmpl": "go-template",
-"*.yaml.example": "yaml",
-"*.yaml.tmpl": "go-template"
-},
-"git.autofetch": true,
-"git.addAICoAuthor": "off",
-"git.enableCommitSigning": true,
-"git.useEditorAsCommitInput": true,
-"github.copilot.chat.enable": true,
-"github.copilot.chat.enableExperimentalFeatures": true,
-"github.copilot.chat.enableExperimentalFeaturesForAllUsers": true,
-"github.copilot.chat.localIndex.enabled": true,
-"github.copilot.chat.localIndex.indexing.enabled": true,
-"gitlens.graph.details.location": "auto",
-"go-template.languages": ["json", "yaml"],
-"makefile.configureOnOpen": true,
-"mssql.connectionGroups": [
-{
-"id": "ROOT",
-"name": "ROOT"
-}
-],
-"terminal.integrated.inheritEnv": true,
-"todo-tree.ripgrep.ripgrep": "{{ output "mise" "which" "rg" | trim }}",
-"window.density.layout": "compact",
-"workbench.colorTheme": "GitHub Dark Default",
-"workbench.iconTheme": "vscode-icons",
-"workbench.secondarySideBar.showLabels": false,
-"workbench.settings.applyToAllProfiles": [
-"[javascript]",
-"[json,jsonc,jsonl]",
-"[go-template]",
-"chat.agent.enabled",
-"chat.disableAIFeatures",
-"chat.persistentProgressVerbosity",
-"chat.sessionSync.enabled",
-"chat.viewSessions.orientation",
-"cSpell.language",
-"cSpell.userWords",
-"editor.defaultFormatter",
-"editor.formatOnSave",
-"files.associations",
-"git.autofetch",
-"git.addAICoAuthor",
-"git.enableCommitSigning",
-"git.useEditorAsCommitInput",
-"github.copilot.chat.enable",
-"github.copilot.chat.enableExperimentalFeatures",
-"github.copilot.chat.enableExperimentalFeaturesForAllUsers",
-"github.copilot.chat.localIndex.enabled",
-"github.copilot.chat.localIndex.indexing.enabled",
-"gitlens.graph.details.location",
-"go-template.languages",
-"makefile.configureOnOpen",
-"mssql.connectionGroups",
-"terminal.integrated.inheritEnv",
-"todo-tree.ripgrep.ripgrep",
-"window.density.layout",
-"workbench.colorTheme",
-"workbench.iconTheme",
-"workbench.secondarySideBar.showLabels"
-],
-"yaml.schemas": {
-{{ $schemaURL | toJson }}: [
-".continue/**/*.yaml"
-]
-}
+	"[javascript]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[json,jsonc,jsonl]": {
+		"editor.defaultFormatter": "vscode.json-language-features"
+	},
+	"[go-template]": {
+		"editor.defaultFormatter": "gohugoio.gotmplfmt"
+	},
+	"chat.instructionsFilesLocations": {
+		".github/instructions": true,
+		".claude/rules": true,
+		"~/.copilot/instructions": true,
+		"~/.claude/rules": true
+	},
+	"chat.agent.enabled": true,
+	"chat.disableAIFeatures": false,
+	"chat.persistentProgressVerbosity": "conversation",
+	"chat.sessionSync.enabled": true,
+	"chat.viewSessions.orientation": "stacked",
+	"cSpell.language": "en,id",
+	"cSpell.userWords": [
+		"atuin",
+		"bunzip",
+		"chezmoi",
+		"chezmoiroot",
+		"croot",
+		"lmstudio",
+		"mkcd",
+		"ollama",
+		"orbstack",
+		"shellenv",
+		"sihotang",
+		"soparsio",
+		"toplevel",
+		"unxz"
+	],
+	"editor.defaultFormatter": "esbenp.prettier-vscode",
+	"editor.formatOnSave": true,
+	"files.associations": {
+		"*.tmpl": "go-template",
+		"*.json.example": "json",
+		"*.yaml.example": "yaml"
+	},
+	"git.autofetch": true,
+	"git.addAICoAuthor": "off",
+	"git.enableCommitSigning": true,
+	"git.useEditorAsCommitInput": true,
+	"github.copilot.chat.enable": true,
+	"github.copilot.chat.enableExperimentalFeatures": true,
+	"github.copilot.chat.enableExperimentalFeaturesForAllUsers": true,
+	"github.copilot.chat.localIndex.enabled": true,
+	"github.copilot.chat.localIndex.indexing.enabled": true,
+	"gitlens.graph.details.location": "auto",
+	"go-template.languages": [
+		"json",
+		"yaml"
+	],
+	"makefile.configureOnOpen": true,
+	"mssql.connectionGroups": [
+		{
+			"id": "ROOT",
+			"name": "ROOT"
+		}
+	],
+	"terminal.integrated.inheritEnv": true,
+	"terminal.integrated.env.linux": {
+		"SSH_AUTH_SOCK": "${env:HOME}/.ssh/ssh-agent.sock"
+	},
+	"todo-tree.ripgrep.ripgrep": "{{ output "mise" "which" "rg" | trim }}",
+	"window.density.layout": "compact",
+	"workbench.colorTheme": "GitHub Dark Default",
+	"workbench.iconTheme": "vscode-icons",
+	"workbench.secondarySideBar.showLabels": false,
+	"workbench.settings.applyToAllProfiles": [
+		"[javascript]",
+		"[json,jsonc,jsonl]",
+		"[go-template]",
+		"chat.agent.enabled",
+		"chat.disableAIFeatures",
+		"chat.persistentProgressVerbosity",
+		"chat.sessionSync.enabled",
+		"chat.viewSessions.orientation",
+		"cSpell.language",
+		"cSpell.userWords",
+		"editor.defaultFormatter",
+		"editor.formatOnSave",
+		"files.associations",
+		"git.autofetch",
+		"git.addAICoAuthor",
+		"git.enableCommitSigning",
+		"git.useEditorAsCommitInput",
+		"github.copilot.chat.enable",
+		"github.copilot.chat.enableExperimentalFeatures",
+		"github.copilot.chat.enableExperimentalFeaturesForAllUsers",
+		"github.copilot.chat.localIndex.enabled",
+		"github.copilot.chat.localIndex.indexing.enabled",
+		"gitlens.graph.details.location",
+		"go-template.languages",
+		"makefile.configureOnOpen",
+		"mssql.connectionGroups",
+		"terminal.integrated.inheritEnv",
+		"terminal.integrated.env.linux",
+		"todo-tree.ripgrep.ripgrep",
+		"window.density.layout",
+		"workbench.colorTheme",
+		"workbench.iconTheme",
+		"workbench.secondarySideBar.showLabels"
+	],
+	"yaml.schemas": {
+		{{ $schemaURL | toJson }}: [
+			".continue/**/*.yaml"
+		]
+	}
 }
