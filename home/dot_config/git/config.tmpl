@@ -10,9 +10,16 @@
 {{- end -}}
 {{- $signingConfig := includeTemplate "git/signing" (dict "git" $gitConfig "gh" $ghConfig) | fromJson -}}
 {{- $rootGpgSign := get $signingConfig "gpgsign" -}}
+{{- $sshData := get . "ssh" | default dict -}}
+{{- $sshGh := get $sshData "gh" | default dict -}}
+{{- $rootSigningKey := "" -}}
+{{- range $sshGhAccount := get $sshGh "accounts" | default (list) -}}
+{{-   if get $sshGhAccount "isRoot" -}}
+{{-     $rootSigningKey = get $sshGhAccount "signingKey" | default "" -}}
+{{-   end -}}
+{{- end -}}
 {{- $gitAccounts := list -}}
 {{- $profilesDir := includeTemplate "path/profiles-dir" . -}}
-{{- $gh := get $signingConfig "gh" -}}
 {{- range $account, $config := $accounts -}}
 {{-   $tools := includeTemplate "accounts/tools" (dict "account" $config) | fromJson -}}
 {{-   if has "git" $tools -}}
@@ -85,8 +92,6 @@
 {{-       end -}}
 {{-       if eq $accountSigningKey "" -}}
 {{-         $username := get $accountGh "username" | default "" -}}
-{{-         $sshData := get $ "ssh" | default dict -}}
-{{-         $sshGh := get $sshData "gh" | default dict -}}
 {{-         range $sshAccount := (get $sshGh "accounts" | default (list)) -}}
 {{-           if eq (get $sshAccount "username" | default "") $username -}}
 {{-             $accountSigningKey = get $sshAccount "signingKey" | default "" -}}
@@ -102,9 +107,7 @@
 {{-   end }}
 {{- end }}
 
-{{- $sshData := get . "ssh" | default dict -}}
 {{- $sshDefault := get $sshData "default" | default dict -}}
-{{- $sshGh := get $sshData "gh" | default dict -}}
 {{- $allowedSignersFile := get $sshGh "signer" | default (get $sshDefault "signer" | default "~/.config/gh/ssh/allowed_signer") -}}
 {{ "\n" -}}
 [gpg]
@@ -114,15 +117,12 @@
     allowedSignersFile = {{ $allowedSignersFile }}
 
 {{- if $hasRoot }}
-{{-   "\n" -}}
-{{-   $ghKey := get $gh "sshKey" | default "" -}}
-{{-   $ghSig := get $gh "signingKey" | default "" -}}
-{{-   if and (eq $ghSig "") (ne $ghKey "") }}{{ $ghSig = printf "%s.pub" $ghKey }}{{ end }}
+{{-   "\n" }}
 [commit]
-    gpgsign = {{ and $rootGpgSign (ne $ghSig "") }}
+    gpgsign = {{ ne $rootSigningKey "" }}
 
 [tag]
-    gpgsign = {{ and $rootGpgSign (ne $ghSig "") }}
+    gpgsign = {{ ne $rootSigningKey "" }}
 {{- end }}
 
 [credential "https://github.com"]
