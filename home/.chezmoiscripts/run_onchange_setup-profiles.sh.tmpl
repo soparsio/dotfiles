@@ -85,19 +85,19 @@
 {{-       end -}}
 {{-       $profileDirectory := printf "~/%s/%s" $profilesDir $account -}}
 {{-       $profileSettings := includeTemplate "Code/settings-profile.json" (dict
-				"configDir" $configDir
-				"profileDirectory" $profileDirectory
-				"tools" $tools
-				"terminalEnvironmentPlatform" $terminalEnvPlatform
-				"gitIdentity" $gitIdentity
-			) | fromJson
-			-}}
+        "configDir" $configDir
+        "profileDirectory" $profileDirectory
+        "tools" $tools
+        "terminalEnvironmentPlatform" $terminalEnvPlatform
+        "gitIdentity" $gitIdentity
+      ) | fromJson
+-}}
 {{-       $vscodeProfiles = append $vscodeProfiles (dict
-				"id" $account
-				"name" $name
-				"settings" $profileSettings
-			)
-			-}}
+        "id" $account
+        "name" $name
+        "settings" $profileSettings
+      )
+-}}
 {{-     end -}}
 {{-   end -}}
 {{- end -}}
@@ -220,7 +220,7 @@ CHEZMOI_VSCODE_PROFILES
 {{-     $tools := includeTemplate "accounts/tools" (dict "account" $config) | fromJson -}}
 {{-     if or (has "gh" $tools) (has "vscode" $tools) -}}
 {{       printf "create_profile gh '%s'\nlink_if_missing \"$HOME/.config/gh/config.yml\" \"$profiles_base/%s/gh/config.yml\"\n" $account $account }}
-{{-     end -}}{{- end -}}{{ end -}}profile_instruction_marker='<!-- Managed by chezmoi; edit 99-local.yaml instead. -->'
+{{- end -}}{{- end -}}{{ end -}}profile_instruction_marker='<!-- Managed by chezmoi; edit 99-local.yaml instead. -->'
 	legacy_profiles_instruction_marker='<!-- Managed by chezmoi; edit profiles.yaml instead. -->'
 	legacy_profile_instruction_marker='<!-- Managed by chezmoi; edit profile.yaml instead. -->'
 	legacy_toml_profile_instruction_marker='<!-- Managed by chezmoi; edit profiles.toml instead. -->'
@@ -343,11 +343,11 @@ CHEZMOI_VSCODE_PROFILES
 {{-     end -}}
 {{-     range $tool := $tools -}}
 {{-       if or
-					(eq $tool "codex")
-					(eq $tool "claude")
-					(eq $tool "copilot")
-					(eq $tool "gemini")
-				-}}
+          (eq $tool "codex")
+          (eq $tool "claude")
+          (eq $tool "copilot")
+          (eq $tool "gemini")
+-}}
 {{-         $instructionSource := "" -}}
 {{-         $instructionTarget := "" -}}
 {{-         if eq $tool "codex" -}}
@@ -392,13 +392,13 @@ CHEZMOI_VSCODE_PROFILES
 {{-     end }}
 {{-   end }}
 {{- end }}
-	{{ if $codexAccounts -}}
+{{ if $codexAccounts -}}
 		chezmoi_source_root='{{ replace "'" "'\"'\"'" (dir .chezmoi.sourceDir) }}'
 		printf '%s' '{{ $codexAccounts | toJson }}' \
 		| CHEZMOI_PROFILES_DIR="$profiles_base" \
 		CHEZMOI_CODEX_CONFIG="$chezmoi_source_root/home/.chezmoitemplates/codex/config.toml" \
 		python3 "$chezmoi_source_root/scripts/share-codex-config.py"
-	{{ end -}}
+{{ end -}}
 {{ if $vscodeProfiles -}}
 
 		configure_vscode_profiles
