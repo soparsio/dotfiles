@@ -1,0 +1,16 @@
+{{- $ssh := get . "ssh" | default dict -}}
+{{- $sshGh := get $ssh "gh" | default dict -}}
+{{- $ghAccounts := get $sshGh "accounts" | default (list) -}}
+{{- range $ghAccount := $ghAccounts -}}
+{{-   $isRoot := get $ghAccount "isRoot" | default false -}}
+{{-   $username := get $ghAccount "username" | default "" -}}
+{{-   $sshKey := get $ghAccount "sshKey" | default "" -}}
+{{-   if and (ne $username "") (ne $sshKey "") -}}
+		Host {{ if $isRoot }}github.com{{ else }}github.com-{{ $username }}{{ end }}
+		HostName github.com
+		User git
+		IdentityFile {{ $sshKey }}
+		IdentitiesOnly yes
+		{{ "\n" -}}
+{{-   end -}}
+{{- end -}}

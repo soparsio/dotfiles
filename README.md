@@ -248,16 +248,16 @@ The path settings use tilde-based values:
 
 ```yaml
 path:
-  workspace:
-    path: ~/Workspace
-    alias: ws
-  profiles:
-    path: ~/.config/profiles
+  aliases:
+    home: "~"
+    root: /
+    ws: ~/Workspace
+  profiles: ~/.config/profiles
 ```
 
-`host.ollama` sets the Ollama endpoint, `path.workspace.path` sets the
-destination of the generated `ws` alias, and `path.profiles.path` selects
-where profile state lives. Any path entry with an `alias` creates a `cd` alias.
+`host.ollama` sets the Ollama endpoint, `path.aliases` maps generated `cd` aliases
+to destinations, `path.profiles` selects where profile state lives, and
+`ssh.gh.path` is the directory for generated GitHub key paths.
 `00-defaults.yaml` provides shared fallback values; machine-specific values
 belong in the ignored `99-local.yaml`. For example:
 
@@ -281,9 +281,9 @@ stored under `accounts` in `99-local.yaml`.
 Copy [`examples/.chezmoidata/ai.yaml.example`](examples/.chezmoidata/ai.yaml.example)
 to the ignored local `home/.chezmoidata/ai.yaml` to customize shared
 instructions. Profile-level instructions can be set with
-`accounts.instructions` or `accounts.<id>.instructions`. The
-`accounts.<id>.ai.instructions` value applies to all AI tools in that account;
-`accounts.<id>.<tool>.instructions` applies to one tool. By default,
+`ai.instructions` or an account's `instructions` field. The account's
+`ai.instructions` value applies to all AI tools in that account; its
+`<tool>.instructions` value applies to one tool. By default,
 instructions append to inherited text. Set `force: true` to replace it.
 
 ### Keep credentials out of configuration

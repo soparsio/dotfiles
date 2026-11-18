@@ -1,21 +1,21 @@
 {{ if eq .chezmoi.os "windows" -}}
-$ErrorActionPreference = 'Stop'
-Set-StrictMode -Version Latest
+	$ErrorActionPreference = 'Stop'
+	Set-StrictMode -Version Latest
 
-$winget = Get-Command winget -ErrorAction SilentlyContinue
-if (-not $winget) {
-    throw 'WinGet is required to install packages on Windows. Install App Installer, then rerun chezmoi apply.'
-}
+	$winget = Get-Command winget -ErrorAction SilentlyContinue
+	if (-not $winget) {
+	throw 'WinGet is required to install packages on Windows. Install App Installer, then rerun chezmoi apply.'
+	}
 
-$packageIds = @(
-{{ range .packages.windows.winget }}    '{{ . }}'
-{{ end -}}
-)
+	$packageIds = @(
+	{{ range .packages.windows.winget }}    '{{ . }}'
+	{{ end -}}
+	)
 
-foreach ($packageId in $packageIds) {
-    & $winget.Source install --id $packageId --exact --no-upgrade --silent --accept-source-agreements --accept-package-agreements
-    if ($LASTEXITCODE -ne 0) {
-        throw "WinGet failed to install $packageId (exit code $LASTEXITCODE)."
-    }
-}
+	foreach ($packageId in $packageIds) {
+	& $winget.Source install --id $packageId --exact --no-upgrade --silent --accept-source-agreements --accept-package-agreements
+	if ($LASTEXITCODE -ne 0) {
+	throw "WinGet failed to install $packageId (exit code $LASTEXITCODE)."
+	}
+	}
 {{ end -}}

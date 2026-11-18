@@ -19,6 +19,9 @@
 
 - Inspect the worktree and relevant source files first. Preserve existing
   uncommitted changes and do not revert unrelated work.
+- For Go template files, including `.tmpl` sources and files under
+  `home/.chezmoitemplates/`, follow `.agents/skills/format-template/SKILL.md`
+  and its formatting reference.
 - Consider macOS, Linux, WSL, and native Windows behavior when changing shell
   configuration, paths, packages, or application setup. Use platform-specific
   conditionals only for actual differences.

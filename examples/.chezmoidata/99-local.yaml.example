@@ -5,7 +5,7 @@ editor: code --wait
 vscode:
   defaultProfile: Default
 accounts:
-  personal:
+  - id: personal
     name: Your Personal Name
     email: you@example.com
     alias: personal
@@ -21,7 +21,7 @@ accounts:
     gh:
       username: your-personal-github-username
 
-  work:
+  - id: work
     name: Your Work Name
     email: you@company.example
     alias: work

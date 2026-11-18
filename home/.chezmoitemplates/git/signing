@@ -1,0 +1,19 @@
+{{- $git := get . "git" | default dict -}}
+{{- if not (kindIs "map" $git) -}}
+{{-   fail "git config must be a table" -}}
+{{- end -}}
+{{- $gh := get . "gh" | default dict -}}
+{{- if not (kindIs "map" $gh) -}}
+{{-   fail "gh config must be a table" -}}
+{{- end -}}
+{{- $gpgSign := get $git "gpgsign" | default false -}}
+{{- if not (kindIs "bool" $gpgSign) -}}
+{{-   fail "git.gpgsign must be a boolean" -}}
+{{- end -}}
+{{- if hasKey $gh "gpgsign" -}}
+{{-   $gpgSign = index $gh "gpgsign" -}}
+{{- end -}}
+{{- if not (kindIs "bool" $gpgSign) -}}
+{{-   fail "gh.gpgsign must be a boolean" -}}
+{{- end -}}
+{{ dict "gpgsign" $gpgSign "gh" $gh | toJson }}

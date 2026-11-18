@@ -49,17 +49,26 @@ if [ "$suite" != bootstrap ]; then
   done
 fi
 
-PROFILE_TEST_DATA='{"name":"Fixture User","email":"fixture@example.test","editor":"code --wait","vscode":{"defaultProfile":"Default"},"path":{"workspace":{"path":"~/Workspace","alias":"ws"},"profiles":{"path":"~/.config/profiles"},"projects":{"path":"~/Projects","alias":"projects"}},"accounts":{"default":{"tools":["codex","vscode"],"name":"Default"},"review":{"tools":["codex","gh","git","vscode"],"alias":"review-account","name":"Review Profile","email":"profile@example.test","git":{"name":"Review User","email":"review@example.test"}},"git_only":{"tools":["git","vscode"],"email":"git-only@example.test"},"vscode_only":{"tools":["vscode"]},"gh-default":{"tools":["gh"],"alias":"fallback-login"},"gh-git-default":{"tools":["gh","git"],"alias":"custom-alias","git":{"name":"Fallback Git","email":"fallback@example.test"}}}}'
-NUMERIC_PROFILE_TEST_DATA='{"editor":"code --wait","path":{"profiles":{"path":"~/.config/profiles"}},"accounts":{"numeric":{"tools":["git","gh"],"alias":123,"name":123}}}'
+PROFILE_TEST_DATA='{"name":"Fixture User","email":"fixture@example.test","editor":"code --wait","vscode":{"defaultProfile":"Default"},"path":{"aliases":{"home":"~","root":"/","ws":"~/Workspace","projects":"~/Projects"},"profiles":"~/.config/profiles"},"accounts":{"default":{"tools":["codex","vscode"],"name":"Default"},"review":{"tools":["codex","gh","git","vscode"],"alias":"review-account","name":"Review Profile","email":"profile@example.test","git":{"name":"Review User","email":"review@example.test"}},"git_only":{"tools":["git","vscode"],"email":"git-only@example.test"},"vscode_only":{"tools":["vscode"]},"gh-default":{"tools":["gh"],"alias":"fallback-login"},"gh-git-default":{"tools":["gh","git"],"alias":"custom-alias","git":{"name":"Fallback Git","email":"fallback@example.test"}}}}'
+ARRAY_PROFILE_TEST_DATA='{"editor":"code --wait","vscode":{"defaultProfile":"Default"},"path":{"profiles":"~/.config/profiles"},"accounts":[{"id":"array-profile","name":"Array Profile","email":"array@example.test","alias":"array-gh","tools":["codex","gh","git","vscode"],"git":{"gpgsign":true},"gh":{"username":"array-user"}}],"ssh":{"gh":{"accounts":[{"username":"array-user","signingKey":"~/.ssh/array-signing.pub"}]}}}'
+NUMERIC_PROFILE_TEST_DATA='{"editor":"code --wait","path":{"profiles":"~/.config/profiles"},"accounts":{"numeric":{"tools":["git","gh"],"alias":123,"name":123}}}'
 MULTI_TOOL_ALIAS_TEST_DATA='{"accounts":{"work":{"tools":["codex","claude","copilot","gemini","vscode"]}}}'
-PROFILE_INSTRUCTION_TEST_DATA='{"path":{"profiles":{"path":"~/.config/profiles"}},"accounts":{"instructions":"All profile base","inherit":{"tools":["codex"]},"empty_profile":{"tools":["codex"],"instructions":""},"empty_tool":{"tools":["codex"],"instructions":"Parent profile base","codex":{"instructions":""}},"specific":{"tools":["codex"],"instructions":"Specific\u0027s base"},"tool":{"tools":["codex"],"instructions":"Profile base","codex":{"force":true,"instructions":"Tool replacement"}}}}'
-PROFILE_FORCE_TEST_DATA='{"path":{"profiles":{"path":"~/.config/profiles"}},"accounts":{"instructions":"Global base","ai_append":{"tools":["codex"],"instructions":"Profile base","ai":{"force":false,"instructions":"AI append"},"codex":{"force":false,"instructions":"Codex append"}},"ai_default":{"tools":["codex"],"ai":{"instructions":"AI default append"}},"ai_force":{"tools":["codex"],"instructions":"Profile base","ai":{"force":true,"instructions":"AI replacement"}},"tool_force_false":{"tools":["codex"],"instructions":"Profile base","codex":{"force":false,"instructions":"Tool append"}},"tool_default":{"tools":["codex"],"instructions":"Tool parent base","codex":{"instructions":"Tool default append"}},"tool_force_true":{"tools":["codex"],"instructions":"Profile base","codex":{"force":true,"instructions":"Tool replacement"}}}}'
-SPECIAL_PATH_TEST_DATA='{"path":{"workspace":{"path":"~/John\u0027s folder/$HOME","alias":"ws"}}}'
-ALIAS_COLLISION_TEST_DATA='{"vscode":{"defaultProfile":"Default"},"path":{"workspace":{"path":"~/Workspace","alias":"code-review"}},"accounts":{"review":{"tools":["vscode"]}}}'
+PROFILE_INSTRUCTION_TEST_DATA='{"path":{"profiles":"~/.config/profiles"},"accounts":{"instructions":"All profile base","inherit":{"tools":["codex"]},"empty_profile":{"tools":["codex"],"instructions":""},"empty_tool":{"tools":["codex"],"instructions":"Parent profile base","codex":{"instructions":""}},"specific":{"tools":["codex"],"instructions":"Specific\u0027s base"},"tool":{"tools":["codex"],"instructions":"Profile base","codex":{"force":true,"instructions":"Tool replacement"}}}}'
+PROFILE_FORCE_TEST_DATA='{"path":{"profiles":"~/.config/profiles"},"accounts":{"instructions":"Global base","ai_append":{"tools":["codex"],"instructions":"Profile base","ai":{"force":false,"instructions":"AI append"},"codex":{"force":false,"instructions":"Codex append"}},"ai_default":{"tools":["codex"],"ai":{"instructions":"AI default append"}},"ai_force":{"tools":["codex"],"instructions":"Profile base","ai":{"force":true,"instructions":"AI replacement"}},"tool_force_false":{"tools":["codex"],"instructions":"Profile base","codex":{"force":false,"instructions":"Tool append"}},"tool_default":{"tools":["codex"],"instructions":"Tool parent base","codex":{"instructions":"Tool default append"}},"tool_force_true":{"tools":["codex"],"instructions":"Profile base","codex":{"force":true,"instructions":"Tool replacement"}}}}'
+SPECIAL_PATH_TEST_DATA='{"path":{"aliases":{"ws":"~/John\u0027s folder/$HOME"}}}'
+ALIAS_COLLISION_TEST_DATA='{"vscode":{"defaultProfile":"Default"},"path":{"aliases":{"code-review":"~/Workspace"}},"accounts":{"review":{"tools":["vscode"]}}}'
 
 tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
 touch "$tmpdir/chezmoi.toml"
+
+copy_accounts_template() {
+  accounts_template_dir="$1/home/.chezmoitemplates/accounts"
+  mkdir -p "$accounts_template_dir"
+  cp home/.chezmoitemplates/accounts/by-id home/.chezmoitemplates/accounts/ssh-signing home/.chezmoitemplates/accounts/tools "$accounts_template_dir/"
+  mkdir -p "$1/home/.chezmoitemplates/git"
+  cp home/.chezmoitemplates/git/signing "$1/home/.chezmoitemplates/git/"
+}
 
 check_bootstrap() {
   mkdir -p "$tmpdir/data-bootstrap-source/scripts" "$tmpdir/data-bootstrap-source/examples/.chezmoidata"
@@ -73,7 +82,7 @@ check_bootstrap() {
   cmp -s examples/.chezmoidata/path.yaml.example "$tmpdir/data-bootstrap-source/home/.chezmoidata/path.yaml"
   grep -Fx 'accounts:' "$tmpdir/data-bootstrap-source/home/.chezmoidata/99-local.yaml" >/dev/null
   "$CHEZMOI" --source "$tmpdir/data-bootstrap-source" --config "$tmpdir/chezmoi.toml" data --format=json >"$tmpdir/data-bootstrap.json"
-  python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); accounts=data["accounts"]; assert data["name"] == "" and data["email"] == ""; assert data["editor"] == "code --wait" and data["vscode"]["defaultProfile"] == "Default"; assert data["host"]["ollama"] == "127.0.0.1:11434"; assert data["path"]["workspace"] == {"path":"~/Workspace","alias":"ws"} and data["path"]["profiles"]["path"] == "~/.config/profiles"; assert "workspaceDir" not in data and "profilesDir" not in data; assert isinstance(data["ai"]["instructions"], str) and "personal" in accounts; assert accounts["personal"]["ai"]["force"] is False and isinstance(accounts["personal"]["ai"]["instructions"], str); assert accounts["personal"]["codex"]["force"] is False; assert accounts["work"]["ai"]["force"] is True' "$tmpdir/data-bootstrap.json"
+  python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); accounts={item["id"]:item for item in data["accounts"]}; assert data["name"] == "" and data["email"] == ""; assert data["editor"] == "code --wait" and data["vscode"]["defaultProfile"] == "Default"; assert data["host"]["ollama"] == "127.0.0.1:11434"; assert data["path"]["aliases"] == {"home":"~","root":"/","ws":"~/Workspace"} and data["path"]["profiles"] == "~/.config/profiles"; assert "workspaceDir" not in data and "profilesDir" not in data; assert isinstance(data["ai"]["instructions"], str) and "personal" in accounts; assert accounts["personal"]["ai"]["force"] is False and isinstance(accounts["personal"]["ai"]["instructions"], str); assert accounts["personal"]["codex"]["force"] is False; assert accounts["work"]["ai"]["force"] is True' "$tmpdir/data-bootstrap.json"
   mkdir -p "$tmpdir/no-host-source/home/dot_config/zsh"
   printf '%s\n' home >"$tmpdir/no-host-source/.chezmoiroot"
   cp home/dot_config/zsh/exports.zsh.tmpl "$tmpdir/no-host-source/home/dot_config/zsh/"
@@ -82,16 +91,53 @@ check_bootstrap() {
   mkdir -p "$tmpdir/gitconfig-fallback-source/home"
   printf '%s\n' home >"$tmpdir/gitconfig-fallback-source/.chezmoiroot"
   cp home/dot_gitconfig.tmpl "$tmpdir/gitconfig-fallback-source/home/"
+  copy_accounts_template "$tmpdir/gitconfig-fallback-source"
   "$CHEZMOI" --source "$tmpdir/gitconfig-fallback-source" --config "$tmpdir/chezmoi.toml" --override-data '{"name":"Your Name","email":"you@example.com"}' cat ~/.gitconfig >"$tmpdir/gitconfig"
   grep -Fx '    name = "Your Name"' "$tmpdir/gitconfig" >/dev/null
   grep -Fx '    email = "you@example.com"' "$tmpdir/gitconfig" >/dev/null
   mkdir -p "$tmpdir/gitconfig-local-source/home/.chezmoidata"
   printf '%s\n' home >"$tmpdir/gitconfig-local-source/.chezmoiroot"
   cp home/dot_gitconfig.tmpl "$tmpdir/gitconfig-local-source/home/"
-  printf '%s\n' 'name: Local Git User' 'email: local-git@example.test' 'accounts: {}' >"$tmpdir/gitconfig-local-source/home/.chezmoidata/99-local.yaml"
+  copy_accounts_template "$tmpdir/gitconfig-local-source"
+  cat >"$tmpdir/gitconfig-local-source/home/.chezmoidata/99-local.yaml" <<'YAML'
+name: Local Git User
+email: local-git@example.test
+git:
+  gpgsign: false
+gh:
+  gpgsign: true
+  sshKey: ~/.ssh/signing
+accounts: {}
+YAML
   "$CHEZMOI" --source "$tmpdir/gitconfig-local-source" --config "$tmpdir/chezmoi.toml" cat ~/.gitconfig >"$tmpdir/gitconfig-local"
   grep -Fx '    name = "Local Git User"' "$tmpdir/gitconfig-local" >/dev/null
   grep -Fx '    email = "local-git@example.test"' "$tmpdir/gitconfig-local" >/dev/null
+  grep -Fx '    signingkey = ~/.ssh/signing.pub' "$tmpdir/gitconfig-local" >/dev/null
+  cat >"$tmpdir/gitconfig-local-source/home/.chezmoidata/99-local.yaml" <<'YAML'
+name: Local Git User
+email: local-git@example.test
+git:
+  gpgsign: true
+gh:
+  gpgsign: false
+  sshKey: ~/.ssh/signing
+accounts: {}
+YAML
+  "$CHEZMOI" --source "$tmpdir/gitconfig-local-source" --config "$tmpdir/chezmoi.toml" cat ~/.gitconfig >"$tmpdir/gitconfig-local-disabled"
+  ! grep -F 'signingkey = ~/.ssh/signing.pub' "$tmpdir/gitconfig-local-disabled" >/dev/null
+
+  mkdir -p "$tmpdir/git-config-template-source/home/dot_config/git" "$tmpdir/git-config-template-source/home/.chezmoitemplates/path"
+  printf '%s\n' home >"$tmpdir/git-config-template-source/.chezmoiroot"
+  cp home/dot_config/git/config.tmpl "$tmpdir/git-config-template-source/home/dot_config/git/"
+  cp home/.chezmoitemplates/path/profiles-dir "$tmpdir/git-config-template-source/home/.chezmoitemplates/path/"
+  copy_accounts_template "$tmpdir/git-config-template-source"
+  "$CHEZMOI" --source "$tmpdir/git-config-template-source" --config "$tmpdir/chezmoi.toml" --override-data '{"name":"Fixture User","email":"fixture@example.test","editor":"code --wait","path":{"profiles":"~/.config/profiles"},"ssh":{"default":{"signer":"~/.custom/allowed_signers"},"gh":{"signer":"~/.gh/allowed_signers"}},"git":{"gpgsign":true},"gh":{"gpgsign":false},"accounts":{"disabled":{"tools":["git"],"git":{"gpgsign":false}},"override":{"tools":["git","gh"],"git":{"gpgsign":false},"gh":{"gpgsign":true,"username":"fixture"}},"inherit":{"tools":["git"]}}}' execute-template --file home/dot_config/git/config.tmpl >"$tmpdir/git-config-template"
+  grep -F 'commit.gpgsign=false' "$tmpdir/git-config-template" >/dev/null
+  grep -F 'commit.gpgsign=true' "$tmpdir/git-config-template" >/dev/null
+  grep -F '    gpgsign = false' "$tmpdir/git-config-template" >/dev/null
+  grep -F 'allowedSignersFile = ~/.gh/allowed_signers' "$tmpdir/git-config-template" >/dev/null
+  "$CHEZMOI" --source "$tmpdir/git-config-template-source" --config "$tmpdir/chezmoi.toml" --override-data '{"editor":"code --wait","ssh":{"default":{"signer":"~/.custom/allowed_signers"},"gh":{}}}' execute-template --file home/dot_config/git/config.tmpl >"$tmpdir/git-config-template-default-signer"
+  grep -F 'allowedSignersFile = ~/.custom/allowed_signers' "$tmpdir/git-config-template-default-signer" >/dev/null
   printf '%s\n' 'Keep existing local data' >"$tmpdir/data-bootstrap-source/home/.chezmoidata/ai.yaml"
   sh "$tmpdir/data-bootstrap-source/scripts/copy-example-data.sh" "$tmpdir/data-bootstrap-source" >/dev/null
   grep -Fx 'Keep existing local data' "$tmpdir/data-bootstrap-source/home/.chezmoidata/ai.yaml" >/dev/null
@@ -123,6 +169,7 @@ check_profiles() {
   cp home/.chezmoitemplates/codex/config.toml "$tmpdir/profile-instruction-source/home/.chezmoitemplates/codex/"
   cp home/.chezmoitemplates/Code/settings-profile.json "$tmpdir/profile-instruction-source/home/.chezmoitemplates/Code/"
   cp home/.chezmoitemplates/path/profiles-dir "$tmpdir/profile-instruction-source/home/.chezmoitemplates/path/"
+  copy_accounts_template "$tmpdir/profile-instruction-source"
   printf '%s\n' 'Shared agent baseline' >"$tmpdir/profile-instruction-home/.codex/AGENTS.md"
   cp home/.chezmoiscripts/run_onchange_setup-profiles.sh.tmpl "$tmpdir/profile-instruction-source/home/.chezmoiscripts/setup.tmpl"
   "$CHEZMOI" --source "$tmpdir/profile-instruction-source" --config "$tmpdir/chezmoi.toml" --override-data "$PROFILE_INSTRUCTION_TEST_DATA" execute-template --file "$tmpdir/profile-instruction-source/home/.chezmoiscripts/setup.tmpl" >"$tmpdir/profile-instruction-setup.sh"
@@ -175,6 +222,8 @@ check_profiles() {
   HOME="$tmpdir/empty-profile-home" sh "$tmpdir/empty-profile-setup-isolated.sh"
   test -L "$tmpdir/empty-profile-home/.config/profiles/empty/codex/AGENTS.md"
   test "$(readlink "$tmpdir/empty-profile-home/.config/profiles/empty/codex/AGENTS.md")" = "$tmpdir/empty-profile-home/.codex/AGENTS.md"
+  "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data '{"path":{"profiles":"~/.config/profiles/"}}' execute-template --file home/.chezmoitemplates/path/profiles-dir >"$tmpdir/profiles-dir-trailing-slash"
+  test "$(cat "$tmpdir/profiles-dir-trailing-slash")" = '.config/profiles'
   "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data "$PROFILE_TEST_DATA" cat ~/.config/zsh/aliases.zsh >"$tmpdir/aliases"
   grep -Fx 'alias c="claude"' "$tmpdir/aliases" >/dev/null
   grep -Fx "alias code='profile-use vscode Default'" "$tmpdir/aliases" >/dev/null
@@ -184,6 +233,16 @@ check_profiles() {
   grep -Fx "alias copilot-work='profile-use copilot work'" "$tmpdir/multi-tool-aliases" >/dev/null
   grep -Fx "alias gemini-work='profile-use gemini work'" "$tmpdir/multi-tool-aliases" >/dev/null
   zsh -fc 'source "$1"; alias -L codex-work' _ "$tmpdir/multi-tool-aliases" | grep -Fx "alias codex-work='profile-use codex work'" >/dev/null
+  "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data "$ARRAY_PROFILE_TEST_DATA" execute-template --file home/dot_config/zsh/aliases.zsh.tmpl >"$tmpdir/array-profile-aliases"
+  grep -Fx "alias codex-array-profile='profile-use codex array-profile'" "$tmpdir/array-profile-aliases" >/dev/null
+  "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data "$ARRAY_PROFILE_TEST_DATA" cat ~/.config/git/config >"$tmpdir/array-profile-git-config"
+  grep -F 'array-gh = "!f() { unset GH_TOKEN' "$tmpdir/array-profile-git-config" >/dev/null
+  grep -F 'GH_CONFIG_DIR=\"$HOME/.config/profiles/array-profile/gh\" git' "$tmpdir/array-profile-git-config" >/dev/null
+  grep -F -- '-c user.signingkey=\"~/.ssh/array-signing.pub\" -c commit.gpgsign=true' "$tmpdir/array-profile-git-config" >/dev/null
+  "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data "$ARRAY_PROFILE_TEST_DATA" cat ~/.config/gh/config.yml >"$tmpdir/array-profile-gh-config"
+  grep -F 'GH_CONFIG_DIR=\"$HOME/.config/profiles/array-profile/gh\"' "$tmpdir/array-profile-gh-config" >/dev/null
+  "$CHEZMOI" --source "$tmpdir/profile-instruction-source" --config "$tmpdir/chezmoi.toml" --override-data "$ARRAY_PROFILE_TEST_DATA" execute-template --file "$tmpdir/profile-instruction-source/home/.chezmoiscripts/setup.tmpl" >"$tmpdir/array-profile-setup.sh"
+  grep -F "create_profile gh 'array-profile'" "$tmpdir/array-profile-setup.sh" >/dev/null
   ! grep -E "alias (git|gh)-review-account=" "$tmpdir/aliases" >/dev/null
   if "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data '{"editor":"code --wait","accounts":{"bad":{"alias":"bad alias","tools":["git"]}}}' cat ~/.config/git/config >"$tmpdir/invalid-profile-alias" 2>&1; then
     printf '%s\n' 'Invalid profile alias was accepted.' >&2
@@ -231,10 +290,12 @@ check_profiles() {
   mkdir -p "$tmpdir/init-config-source/home/.chezmoidata"
   printf '%s\n' home >"$tmpdir/init-config-source/.chezmoiroot"
   cp home/.chezmoi.yaml.tmpl "$tmpdir/init-config-source/home/"
+  copy_accounts_template "$tmpdir/init-config-source"
   printf '%s\n' 'name: Fixture User' 'email: fixture@example.test' >"$tmpdir/init-config-source/home/.chezmoidata/99-local.yaml"
   "$CHEZMOI" --source "$tmpdir/init-config-source" --config "$tmpdir/chezmoi.toml" --override-data '{"name":"Stale Config User","email":"stale-config@example.test"}' execute-template --init --file home/.chezmoi.yaml.tmpl >"$tmpdir/chezmoi-init-config.yaml"
   grep -F '  name: Fixture User' "$tmpdir/chezmoi-init-config.yaml" >/dev/null
   grep -F '  email: fixture@example.test' "$tmpdir/chezmoi-init-config.yaml" >/dev/null
+  grep -F '  hasMultiAccounts: false' "$tmpdir/chezmoi-init-config.yaml" >/dev/null
   ! grep -E '^[[:space:]]*$' "$tmpdir/chezmoi-init-config.yaml" >/dev/null
   ! grep -E '^(name|email):' "$tmpdir/chezmoi-init-config.yaml" >/dev/null
   ! grep -F 'stale-config@example.test' "$tmpdir/chezmoi-init-config.yaml" >/dev/null
@@ -242,6 +303,7 @@ check_profiles() {
   ! grep -F 'defaultProfile:' "$tmpdir/chezmoi.yaml" >/dev/null
   grep -F 'name: Fixture User' "$tmpdir/chezmoi.yaml" >/dev/null
   grep -F 'email: fixture@example.test' "$tmpdir/chezmoi.yaml" >/dev/null
+  grep -F 'hasMultiAccounts: true' "$tmpdir/chezmoi.yaml" >/dev/null
   ! grep -F 'ollamaHost:' "$tmpdir/chezmoi.yaml" >/dev/null
   ! grep -E '^  accounts:' "$tmpdir/chezmoi.yaml" >/dev/null
   mkdir -p "$tmpdir/config-source"
@@ -251,6 +313,8 @@ check_profiles() {
   grep -F "alias dotfiles-review='profile-use vscode review" "$tmpdir/aliases" >/dev/null
   grep -F 'alias ws='\''builtin cd -- "$HOME"/"Workspace"'\''' "$tmpdir/aliases" >/dev/null
   grep -F 'alias projects='\''builtin cd -- "$HOME"/"Projects"'\''' "$tmpdir/aliases" >/dev/null
+  grep -F 'alias home='\''builtin cd -- "$HOME"'\''' "$tmpdir/aliases" >/dev/null
+  grep -F 'alias root='\''builtin cd -- "/"'\''' "$tmpdir/aliases" >/dev/null
   ! grep -F 'ws() {' "$tmpdir/aliases" >/dev/null
   chezmoi --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data "$SPECIAL_PATH_TEST_DATA" cat ~/.config/zsh/aliases.zsh >"$tmpdir/aliases-special-path"
   zsh -n "$tmpdir/aliases-special-path"
@@ -261,16 +325,16 @@ check_profiles() {
     exit 1
   fi
   grep -F 'path alias "code-review" conflicts with another generated alias' "$tmpdir/alias-collision" >/dev/null
-  if "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data '{"path":{"workspace":{"path":"~/Workspace","alias":"c"}}}' cat ~/.config/zsh/aliases.zsh >"$tmpdir/static-alias-collision" 2>&1; then
+  if "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data '{"path":{"aliases":{"c":"~/Workspace"}}}' cat ~/.config/zsh/aliases.zsh >"$tmpdir/static-alias-collision" 2>&1; then
     printf '%s\n' 'Expected a path alias colliding with a built-in alias to fail template validation.' >&2
     exit 1
   fi
   grep -F 'path alias "c" conflicts with another generated alias' "$tmpdir/static-alias-collision" >/dev/null
-  if "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data '{"path":{"profiles":{"path":"relative"}}}' execute-template --file home/.chezmoiscripts/run_onchange_setup-profiles.sh.tmpl >"$tmpdir/invalid-profiles-path" 2>&1; then
+  if "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data '{"path":{"profiles":"relative"}}' execute-template --file home/.chezmoiscripts/run_onchange_setup-profiles.sh.tmpl >"$tmpdir/invalid-profiles-path" 2>&1; then
     printf '%s\n' 'Expected a relative profile path to fail template validation.' >&2
     exit 1
   fi
-  grep -F 'path.profiles.path must be a home-relative path starting with ~/' "$tmpdir/invalid-profiles-path" >/dev/null
+  grep -F 'path.profiles must be a home-relative path starting with ~/' "$tmpdir/invalid-profiles-path" >/dev/null
   grep -F '$(dirname "$(chezmoi source-path)")' "$tmpdir/aliases" >/dev/null
   "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data '{"editor":"code --wait","host":{}}' cat ~/.config/zsh/exports.zsh >"$tmpdir/exports"
   grep -F 'export OLLAMA_HOST="127.0.0.1:11434"' "$tmpdir/exports" >/dev/null
@@ -392,6 +456,158 @@ check_platforms() {
   grep -F '/.config/profiles"' "$tmpdir/setup-profiles.sh" >/dev/null
   ! grep -F 'code --profile' "$tmpdir/setup-profiles.sh" >/dev/null
   grep -F "create_profile gh 'review'" "$tmpdir/setup-profiles.sh" >/dev/null
+}
+
+check_ssh_keys() {
+  mkdir -p "$tmpdir/ssh-keygen-bin" "$tmpdir/ssh-key-home"
+  mkdir -p "$tmpdir/ssh-key-source/home/.chezmoiscripts"
+  printf '%s\n' home >"$tmpdir/ssh-key-source/.chezmoiroot"
+  cp home/.chezmoiscripts/run_onchange_before_generate-ssh-keys.sh.tmpl "$tmpdir/ssh-key-source/home/.chezmoiscripts/"
+  cat >"$tmpdir/ssh-keygen-bin/ssh-keygen" <<'SH'
+#!/bin/sh
+set -eu
+if [ "${SSH_KEYGEN_SHOULD_NOT_RUN:-0}" = 1 ]; then
+  printf '%s\n' 'ssh-keygen was called for an existing key.' >&2
+  exit 1
+fi
+key_path=
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -f) key_path=$2; shift 2 ;;
+    *) shift ;;
+  esac
+done
+[ -n "$key_path" ]
+printf '%s\n' 'test private key' >"$key_path"
+printf '%s\n' 'test public key' >"$key_path.pub"
+SH
+  chmod +x "$tmpdir/ssh-keygen-bin/ssh-keygen"
+"$CHEZMOI" --source "$tmpdir/ssh-key-source" --config "$tmpdir/chezmoi.toml" --destination "$tmpdir/ssh-key-home" --override-data '{"ssh":{"gh":{"accounts":[{"username":"fixture-root","sshKey":"~/.ssh/signing"},{"username":"fixture-profile","sshKey":"~/.ssh/profile"}]}}}' execute-template --file home/.chezmoiscripts/run_onchange_before_generate-ssh-keys.sh.tmpl >"$tmpdir/ssh-keys-enabled.sh"
+"$CHEZMOI" --source "$tmpdir/ssh-key-source" --config "$tmpdir/chezmoi.toml" --destination "$tmpdir/ssh-key-home" --override-data '{"ssh":{"gh":{"accounts":[]}}}' execute-template --file home/.chezmoiscripts/run_onchange_before_generate-ssh-keys.sh.tmpl >"$tmpdir/ssh-keys-disabled.sh"
+grep -F '# SSH key paths and file state checksum:' "$tmpdir/ssh-keys-enabled.sh" >"$tmpdir/ssh-keys-enabled-checksum"
+grep -F '# SSH key paths and file state checksum:' "$tmpdir/ssh-keys-disabled.sh" >"$tmpdir/ssh-keys-disabled-checksum"
+  ! cmp -s "$tmpdir/ssh-keys-enabled-checksum" "$tmpdir/ssh-keys-disabled-checksum"
+"$CHEZMOI" --source "$tmpdir/ssh-key-source" --config "$tmpdir/chezmoi.toml" --destination "$tmpdir/ssh-key-home" --override-data '{"ssh":{"gh":{"accounts":[{"username":"fixture-root","sshKey":"~/.ssh/signing"},{"username":"fixture-profile","sshKey":"~/.ssh/profile"}]}}}' execute-template --file home/.chezmoiscripts/run_onchange_before_generate-ssh-keys.sh.tmpl >"$tmpdir/ssh-keys-override-enabled.sh"
+grep -F '# SSH key paths and file state checksum:' "$tmpdir/ssh-keys-override-enabled.sh" >"$tmpdir/ssh-keys-override-enabled-checksum"
+  cmp -s "$tmpdir/ssh-keys-enabled-checksum" "$tmpdir/ssh-keys-override-enabled-checksum"
+  sh -n "$tmpdir/ssh-keys-enabled.sh"
+test "$(head -n 1 "$tmpdir/ssh-keys-enabled.sh")" = '#!/bin/sh'
+  HOME="$tmpdir/ssh-key-home" PATH="$tmpdir/ssh-keygen-bin:$PATH" sh "$tmpdir/ssh-keys-enabled.sh"
+  test -f "$tmpdir/ssh-key-home/.ssh/signing"
+  test -f "$tmpdir/ssh-key-home/.ssh/signing.pub"
+test -f "$tmpdir/ssh-key-home/.ssh/profile"
+test -f "$tmpdir/ssh-key-home/.ssh/profile.pub"
+"$CHEZMOI" --source "$tmpdir/ssh-key-source" --config "$tmpdir/chezmoi.toml" --destination "$tmpdir/ssh-key-home" --override-data '{"ssh":{"gh":{"accounts":[{"username":"fixture-root","sshKey":"~/.ssh/signing"},{"username":"fixture-profile","sshKey":"~/.ssh/profile"}]}}}' execute-template --file home/.chezmoiscripts/run_onchange_before_generate-ssh-keys.sh.tmpl >"$tmpdir/ssh-keys-existing.sh"
+grep -F '# SSH key paths and file state checksum:' "$tmpdir/ssh-keys-existing.sh" >"$tmpdir/ssh-keys-existing-checksum"
+! cmp -s "$tmpdir/ssh-keys-enabled-checksum" "$tmpdir/ssh-keys-existing-checksum"
+SSH_KEYGEN_SHOULD_NOT_RUN=1 HOME="$tmpdir/ssh-key-home" PATH="$tmpdir/ssh-keygen-bin:$PATH" sh "$tmpdir/ssh-keys-existing.sh"
+}
+
+check_init_ssh_config() {
+  mkdir -p "$tmpdir/ssh-config-source/home/.chezmoidata"
+  printf '%s\n' home >"$tmpdir/ssh-config-source/.chezmoiroot"
+  cp home/.chezmoi.yaml.tmpl "$tmpdir/ssh-config-source/home/"
+  cp home/.chezmoidata/00-defaults.yaml "$tmpdir/ssh-config-source/home/.chezmoidata/"
+  copy_accounts_template "$tmpdir/ssh-config-source"
+  cat >"$tmpdir/ssh-config-source/home/.chezmoidata/99-local.yaml" <<'YAML'
+name: Fixture User
+email: fixture@example.test
+git:
+  gpgsign: false
+gh:
+  username: fixture-root
+  gpgsign: true
+accounts:
+  - id: explicit
+    email: explicit@example.test
+    git:
+      email: explicit-git@example.test
+      gpgsign: true
+    gh:
+      username: explicit
+      gpgsign: true
+      sshKey: ~/.custom/id_explicit
+      signingKey: ~/.custom/id_explicit.pub
+  - id: generated
+    email: generated@example.test
+    git:
+      gpgsign: true
+    gh:
+      username: generated
+  - id: custom_key
+    email: custom-key@example.test
+    git:
+      gpgsign: true
+    gh:
+      username: custom-key
+      gpgsign: true
+      sshKey: ~/.custom/id_custom
+  - id: custom_signing
+    email: custom-signing@example.test
+    git:
+      gpgsign: true
+    gh:
+      username: custom-signing
+      gpgsign: true
+      signingKey: ~/.custom/id_custom_signing.pub
+  - id: disabled
+    git:
+      gpgsign: true
+    gh:
+      username: disabled
+      gpgsign: false
+  - id: without_gh
+    tools: [git]
+YAML
+  "$CHEZMOI" --source "$tmpdir/ssh-config-source" --config "$tmpdir/chezmoi.toml" execute-template --init --file home/.chezmoi.yaml.tmpl >"$tmpdir/ssh-config.yaml"
+  "$CHEZMOI" --source "$tmpdir/ssh-config-source" --config "$tmpdir/ssh-config.yaml" data --format=json >"$tmpdir/ssh-config-data.json"
+  python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); accounts={item["username"]:item for item in data["ssh"]["gh"]["accounts"]}; assert set(accounts) == {"fixture-root","explicit","generated","custom-key","custom-signing"}; assert accounts["fixture-root"]["isRoot"] is True; assert all(item["isRoot"] is False for name,item in accounts.items() if name != "fixture-root"); assert accounts["fixture-root"]["email"] == "fixture@example.test"; assert accounts["explicit"]["email"] == "explicit-git@example.test"; assert accounts["generated"]["email"] == "generated@example.test"; assert accounts["custom-key"]["email"] == "custom-key@example.test"; assert accounts["custom-signing"]["email"] == "custom-signing@example.test"; assert accounts["fixture-root"]["sshKey"] == "~/.config/gh/ssh/id_ed25519_github_fixture-root" and accounts["fixture-root"]["signingKey"] == "~/.config/gh/ssh/id_ed25519_github_fixture-root.pub"; assert accounts["explicit"]["sshKey"] == "~/.custom/id_explicit" and accounts["explicit"]["signingKey"] == "~/.custom/id_explicit.pub"; assert accounts["generated"]["sshKey"] == "~/.config/gh/ssh/id_ed25519_github_generated" and accounts["generated"]["signingKey"] == "~/.config/gh/ssh/id_ed25519_github_generated.pub"; assert accounts["custom-key"]["sshKey"] == "~/.custom/id_custom" and accounts["custom-key"]["signingKey"] == "~/.custom/id_custom.pub"; assert accounts["custom-signing"]["sshKey"] == "~/.config/gh/ssh/id_ed25519_github_custom-signing" and accounts["custom-signing"]["signingKey"] == "~/.custom/id_custom_signing.pub"' "$tmpdir/ssh-config-data.json"
+  python3 -c 'import json,sys; gh=json.load(open(sys.argv[1]))["ssh"]["gh"]; assert gh["path"] == "~/.config/gh/ssh/" and gh["signer"] == "~/.config/gh/ssh/allowed_signer"' "$tmpdir/ssh-config-data.json"
+  mkdir -p "$tmpdir/ssh-config-source/home/dot_config/private_gh/private_ssh"
+  cp home/dot_config/private_gh/private_ssh/private_config.tmpl "$tmpdir/ssh-config-source/home/dot_config/private_gh/private_ssh/private_config.tmpl"
+  "$CHEZMOI" --source "$tmpdir/ssh-config-source" --config "$tmpdir/ssh-config.yaml" execute-template --file home/dot_config/private_gh/private_ssh/private_config.tmpl >"$tmpdir/ssh-config-rendered"
+  grep -Fx 'Host github.com' "$tmpdir/ssh-config-rendered" >/dev/null
+  grep -F 'IdentityFile ~/.config/gh/ssh/id_ed25519_github_fixture-root' "$tmpdir/ssh-config-rendered" >/dev/null
+  grep -Fx 'Host github.com-explicit' "$tmpdir/ssh-config-rendered" >/dev/null
+  grep -F 'IdentityFile ~/.custom/id_explicit' "$tmpdir/ssh-config-rendered" >/dev/null
+  grep -Fx 'Host github.com-generated' "$tmpdir/ssh-config-rendered" >/dev/null
+  grep -F 'IdentityFile ~/.config/gh/ssh/id_ed25519_github_generated' "$tmpdir/ssh-config-rendered" >/dev/null
+  grep -Fx 'Host github.com-custom-key' "$tmpdir/ssh-config-rendered" >/dev/null
+  mkdir -p "$tmpdir/ssh-public"
+  printf '%s\n' 'ssh-ed25519 fixture-root' >"$tmpdir/ssh-public/root.pub"
+  printf '%s\n' 'ssh-ed25519 fixture-explicit' >"$tmpdir/ssh-public/explicit.pub"
+  printf '%s\n' 'ssh-ed25519 fixture-generated' >"$tmpdir/ssh-public/generated.pub"
+  printf '%s\n' 'ssh-ed25519 fixture-custom-key' >"$tmpdir/ssh-public/custom-key.pub"
+  printf '%s\n' 'ssh-ed25519 fixture-custom-signing' >"$tmpdir/ssh-public/custom-signing.pub"
+  "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" --override-data "{\"ssh\":{\"gh\":{\"accounts\":[{\"email\":\"fixture@example.test\",\"signingKey\":\"$tmpdir/ssh-public/root.pub\"},{\"email\":\"explicit-git@example.test\",\"signingKey\":\"$tmpdir/ssh-public/explicit.pub\"},{\"email\":\"generated@example.test\",\"signingKey\":\"$tmpdir/ssh-public/generated.pub\"},{\"email\":\"custom-key@example.test\",\"signingKey\":\"$tmpdir/ssh-public/custom-key.pub\"},{\"email\":\"custom-signing@example.test\",\"signingKey\":\"$tmpdir/ssh-public/custom-signing.pub\"}]}}}" execute-template --file home/dot_config/private_gh/private_ssh/private_allowed_signer.tmpl >"$tmpdir/ssh-allowed-signers"
+  grep -Fx 'fixture@example.test ssh-ed25519 fixture-root' "$tmpdir/ssh-allowed-signers" >/dev/null
+  grep -Fx 'explicit-git@example.test ssh-ed25519 fixture-explicit' "$tmpdir/ssh-allowed-signers" >/dev/null
+  grep -Fx 'generated@example.test ssh-ed25519 fixture-generated' "$tmpdir/ssh-allowed-signers" >/dev/null
+  grep -Fx 'custom-key@example.test ssh-ed25519 fixture-custom-key' "$tmpdir/ssh-allowed-signers" >/dev/null
+  grep -Fx 'custom-signing@example.test ssh-ed25519 fixture-custom-signing' "$tmpdir/ssh-allowed-signers" >/dev/null
+
+  mkdir -p "$tmpdir/ssh-config-disabled-source/home/.chezmoidata"
+  printf '%s\n' home >"$tmpdir/ssh-config-disabled-source/.chezmoiroot"
+  cp home/.chezmoi.yaml.tmpl "$tmpdir/ssh-config-disabled-source/home/"
+  copy_accounts_template "$tmpdir/ssh-config-disabled-source"
+  cat >"$tmpdir/ssh-config-disabled-source/home/.chezmoidata/99-local.yaml" <<'YAML'
+name: Fixture User
+email: fixture@example.test
+git:
+  gpgsign: true
+gh:
+  gpgsign: false
+accounts:
+  disabled:
+    git:
+      gpgsign: true
+    gh:
+      username: disabled
+      gpgsign: false
+YAML
+  "$CHEZMOI" --source "$tmpdir/ssh-config-disabled-source" --config "$tmpdir/chezmoi.toml" execute-template --init --file home/.chezmoi.yaml.tmpl >"$tmpdir/ssh-config-disabled.yaml"
+  "$CHEZMOI" --source "$tmpdir/ssh-config-disabled-source" --config "$tmpdir/ssh-config-disabled.yaml" data --format=json >"$tmpdir/ssh-config-disabled-data.json"
+  python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); assert "ssh" not in data' "$tmpdir/ssh-config-disabled-data.json"
 }
 
 check_profile_state() {
@@ -681,7 +897,7 @@ check_vscode() {
   printf '%s\n' '#!/bin/sh' '[ "$#" -eq 2 ] && [ "$1" = --locate-extension ] && [ "$2" = continue.continue ] || exit 1' 'printf "%s\n" "${CHEZMOI_VSCODE_TEST_EXTENSION_PATH:-/mise-test/vscode/extensions/continue.continue}"' >"$tmpdir/bin/code"
   chmod +x "$tmpdir/bin/mise" "$tmpdir/bin/code"
   PATH="$tmpdir/bin:$PATH" "$CHEZMOI" --source "$CHEZMOI_SOURCE" --config "$tmpdir/chezmoi.toml" execute-template --file 'home/private_Library/private_Application Support/private_Code/User/settings.json.tmpl' >"$tmpdir/vscode-settings.json"
-  python3 -c 'import json,sys; settings=json.load(open(sys.argv[1])); workspace=json.load(open(sys.argv[2])); associations=workspace["files.associations"]; assert "**/.chezmoitemplates/Code/settings.json" not in settings["files.associations"]; assert associations["**/*.tmpl"] == "go-template"; assert associations["**/.chezmoitemplates/Code/*"] == "go-template"; assert associations["**/.chezmoitemplates/gh/config.yml"] == "go-template"' "$tmpdir/vscode-settings.json" .vscode/settings.json
+  python3 -c 'import json,sys; settings=json.load(open(sys.argv[1])); workspace=json.load(open(sys.argv[2])); associations=workspace["files.associations"]; assert "**/.chezmoitemplates/Code/settings.json" not in settings["files.associations"]; assert associations["**/*.tmpl"] == "go-template"; assert associations["**/.chezmoitemplates/**"] == "go-template"' "$tmpdir/vscode-settings.json" .vscode/settings.json
   python3 -m json.tool "$tmpdir/vscode-settings.json" >/dev/null
   python3 -c 'import json,sys; settings=json.load(open(sys.argv[1])); keys=set(settings)-{"yaml.schemas","workbench.settings.applyToAllProfiles","chat.instructionsFilesLocations"}; shared=set(settings["workbench.settings.applyToAllProfiles"]); assert keys == shared, "VS Code shared settings must be listed in applyToAllProfiles"; assert "chat.instructionsFilesLocations" not in shared, "VS Code instruction locations must remain profile-specific"; assert settings["todo-tree.ripgrep.ripgrep"] == "/mise-test/ripgrep/rg", "VS Code ripgrep path must come from mise which rg"; assert "file:///mise-test/vscode/extensions/continue.continue/config-yaml-schema.json" in settings["yaml.schemas"], "Continue schema path must come from code --locate-extension"' "$tmpdir/vscode-settings.json"
   for template in 'home/dot_config/Code/User/settings.json.tmpl' 'home/AppData/Roaming/Code/User/settings.json.tmpl'; do
@@ -705,6 +921,8 @@ run_suite() {
   all)
     check_bootstrap
     check_profiles
+    check_init_ssh_config
+    check_ssh_keys
     check_platforms
     check_profile_state
     check_vscode
@@ -715,6 +933,8 @@ run_suite() {
       'PASS home/dot_gitconfig.tmpl and home/dot_config/git/config.tmpl' \
       'PASS home/dot_config/private_gh/private_config.yml.tmpl' \
       'PASS home/.chezmoiscripts/run_onchange_setup-profiles.sh.tmpl' \
+      'PASS home/.chezmoiscripts/run_onchange_before_generate-ssh-keys.sh.tmpl' \
+      'PASS home/.chezmoi.yaml.tmpl SSH signing data generation' \
       'PASS home/dot_config/zsh/aliases.zsh.tmpl' \
       'PASS home/dot_config/zsh/exports.zsh.tmpl' \
       'PASS home/dot_config/zsh/functions.zsh.tmpl and integrations.zsh' \
