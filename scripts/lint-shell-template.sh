@@ -116,6 +116,59 @@ format_template() {
   shfmt -w -ln "$shell_dialect" "$rendered_path"
 }
 
+check_template_format() {
+  python3 - "$1" <<'PY'
+import pathlib
+import re
+import sys
+
+path = pathlib.Path(sys.argv[1])
+source = path.read_text()
+action_re = re.compile(r"\{\{(-)?(.*?)(-)?\}\}", re.DOTALL)
+block_stack = []
+errors = []
+
+for match in action_re.finditer(source):
+    line_start = source.rfind("\n", 0, match.start()) + 1
+    prefix = source[line_start:match.start()]
+    action = match.group(2)
+    token_match = re.match(r"\s*([A-Za-z_][A-Za-z0-9_]*)", action)
+    token = token_match.group(1) if token_match else ""
+    line_number = source.count("\n", 0, match.start()) + 1
+    is_standalone = not prefix.strip(" \t")
+    has_left_trim = match.group(1) == "-"
+
+    if token == "end" and block_stack:
+        block_stack.pop()
+    if token == "else":
+        level = max(0, len(block_stack) - 1)
+    else:
+        level = len(block_stack)
+
+    if is_standalone and (has_left_trim or not prefix):
+        if prefix:
+            errors.append(
+                f"{path}:{line_number}: standalone template action must start at column zero"
+            )
+
+        expected_spaces = 1 if level == 0 else 2 * level + 1
+        actual_spaces = len(action) - len(action.lstrip(" \t"))
+        if actual_spaces != expected_spaces or "\t" in action[:actual_spaces]:
+            opening = "{{-" if has_left_trim else "{{"
+            errors.append(
+                f"{path}:{line_number}: expected {expected_spaces} spaces after '{opening}' "
+                f"at nesting level {level}, found {actual_spaces}"
+            )
+
+    if token in {"if", "range", "with", "define", "block"}:
+        block_stack.append(token)
+
+if errors:
+    print("\n".join(errors), file=sys.stderr)
+    sys.exit(1)
+PY
+}
+
 check_whitespace() {
   python3 - "$1" "$2" <<'PY'
 import pathlib
@@ -152,6 +205,8 @@ printf '%s\n' "$templates" | while IFS= read -r template; do
   case $template in
     *.zsh.tmpl) syntax_checker=${ZSH:-zsh} ;;
   esac
+
+  check_template_format "$template"
 
   if [ "$fix" -eq 1 ] && [ "$#" -eq 1 ]; then
     normalize_whitespace "$template"

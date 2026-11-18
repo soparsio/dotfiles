@@ -16,10 +16,10 @@ brew install --cask --adopt visual-studio-code
 fi
 
 brew bundle --file=/dev/stdin <<EOF
-{{ range .packages.darwin.homebrew.formula }}brew "{{ . }}"
-{{ end -}}
-{{ range .packages.darwin.homebrew.cask }}cask "{{ . }}"
-{{ end -}}
+{{   range .packages.darwin.homebrew.formula }}brew "{{ . }}"
+{{   end -}}
+{{   range .packages.darwin.homebrew.cask }}cask "{{ . }}"
+{{   end -}}
 EOF
 
 brew cleanup --prune=all
